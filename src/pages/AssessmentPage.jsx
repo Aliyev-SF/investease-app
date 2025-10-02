@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '../utils/supabase';
 
 function AssessmentPage({ userData, onComplete }) {
   const [answers, setAnswers] = useState({
@@ -8,6 +9,7 @@ function AssessmentPage({ userData, onComplete }) {
   });
 
   const [selectedScale, setSelectedScale] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const handleScaleClick = (value) => {
     setSelectedScale(value);
@@ -24,28 +26,52 @@ function AssessmentPage({ userData, onComplete }) {
     });
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Validation
     if (!answers.confidenceLevel || !answers.mainWorry || !answers.investmentGoal) {
       alert('Please answer all questions');
       return;
     }
 
-    // Calculate initial confidence score (weighted average)
-    // Base score from their self-rating, adjusted down slightly to show room for growth
-    const initialScore = answers.confidenceLevel * 0.7 + 2;
+    setSaving(true);
 
-    // Store assessment data
-    const assessmentData = {
-      ...answers,
-      initialScore: initialScore,
-      completedAt: new Date().toISOString()
-    };
-    
-    localStorage.setItem('investease_assessment', JSON.stringify(assessmentData));
+    try {
+      // Calculate initial confidence score (weighted average)
+      // Base score from their self-rating, adjusted down slightly to show room for growth
+      const initialScore = answers.confidenceLevel * 0.7 + 2;
 
-    // Call onComplete with the calculated score
-    onComplete(initialScore);
+      // Save assessment data to Supabase
+      const { error } = await supabase
+        .from('assessments')
+        .insert([
+          {
+            user_id: userData.id,
+            confidence_level: answers.confidenceLevel,
+            main_worry: answers.mainWorry,
+            investment_goal: answers.investmentGoal,
+            initial_score: initialScore,
+            completed_at: new Date().toISOString()
+          }
+        ]);
+
+      if (error) throw error;
+
+      // Also store in localStorage as backup (optional)
+      const assessmentData = {
+        ...answers,
+        initialScore: initialScore,
+        completedAt: new Date().toISOString()
+      };
+      localStorage.setItem('investease_assessment', JSON.stringify(assessmentData));
+
+      // Call onComplete with the calculated score
+      onComplete(initialScore);
+
+    } catch (error) {
+      console.error('Error saving assessment:', error);
+      alert('Error saving assessment. Please try again.');
+      setSaving(false);
+    }
   };
 
   return (
@@ -75,7 +101,7 @@ function AssessmentPage({ userData, onComplete }) {
                 onClick={() => handleScaleClick(num)}
                 className={`flex-1 py-4 rounded-lg font-bold text-lg transition-all transform hover:scale-105 hover:shadow-lg ${
                   selectedScale === num
-                    ? 'bg-primary text-white scale-105 shadow-xl'
+                    ? 'bg-primary text-white shadow-lg scale-105'
                     : 'bg-gray-100 text-dark hover:bg-gray-200'
                 }`}
               >
@@ -83,10 +109,8 @@ function AssessmentPage({ userData, onComplete }) {
               </button>
             ))}
           </div>
-
-          {/* Scale Labels */}
-          <div className="flex justify-between text-sm text-gray px-1">
-            <span>Not at all confident</span>
+          <div className="flex justify-between text-sm text-gray">
+            <span>Not confident at all</span>
             <span>Very confident</span>
           </div>
         </div>
@@ -94,20 +118,21 @@ function AssessmentPage({ userData, onComplete }) {
         {/* Question 2: Main Worry */}
         <div className="mb-10">
           <h3 className="text-xl font-bold text-dark mb-4">
-            2. What worries you most about investing?
+            2. What's your biggest worry about investing?
           </h3>
           <select
             name="mainWorry"
             value={answers.mainWorry}
             onChange={handleSelectChange}
-            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors text-lg"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors text-dark"
           >
             <option value="">Select your main concern</option>
-            <option value="losing">Losing all my money</option>
-            <option value="mistakes">Making irreversible mistakes</option>
-            <option value="knowledge">Not understanding what I'm doing</option>
-            <option value="timing">Bad timing (buying high, selling low)</option>
-            <option value="choosing">Not knowing what to invest in</option>
+            <option value="losing_money">Losing my money</option>
+            <option value="not_understanding">Not understanding how it works</option>
+            <option value="making_mistakes">Making costly mistakes</option>
+            <option value="market_crashes">Market crashes</option>
+            <option value="scams">Getting scammed or misled</option>
+            <option value="timing">Buying at the wrong time</option>
           </select>
         </div>
 
@@ -120,7 +145,7 @@ function AssessmentPage({ userData, onComplete }) {
             name="investmentGoal"
             value={answers.investmentGoal}
             onChange={handleSelectChange}
-            className="w-full px-4 py-4 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors text-lg"
+            className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none transition-colors text-dark"
           >
             <option value="">Select your primary goal</option>
             <option value="retirement">Retirement savings</option>
@@ -134,9 +159,14 @@ function AssessmentPage({ userData, onComplete }) {
         {/* Submit Button */}
         <button
           onClick={handleSubmit}
-          className="w-full bg-primary text-white py-4 px-6 rounded-xl font-bold text-lg hover:bg-primary-dark transform hover:-translate-y-0.5 transition-all duration-200 shadow-lg hover:shadow-xl"
+          disabled={saving}
+          className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+            saving
+              ? 'bg-gray-400 cursor-not-allowed'
+              : 'bg-primary text-white hover:bg-primary-dark hover:shadow-xl transform hover:-translate-y-1'
+          }`}
         >
-          Start Practice Mode
+          {saving ? 'Saving...' : 'Start Practice Mode'}
         </button>
       </div>
     </div>
