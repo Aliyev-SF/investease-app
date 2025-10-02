@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../utils/supabase';
 import { stockData as initialStockData, updateStockPrices } from '../utils/stockData';
 import { getCoachingMessage } from '../utils/coachingMessages';
 import StockCard from '../components/StockCard';
 import TradeModal from '../components/TradeModal';
 
-function DashboardPage({ userData, confidenceScore: initialConfidence }) {
+function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout }) {
   // Portfolio state
-  const [portfolio, setPortfolio] = useState({
-    cash: 10000,
-    holdings: [],
-    totalValue: 10000
+  const [portfolio, setPortfolio] = useState(() => {
+    const saved = localStorage.getItem('investease_portfolio');
+    return saved ? JSON.parse(saved) : {
+      cash: 10000,
+      holdings: [],
+      totalValue: 10000
+    };
   });
-  const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   // Stock data state
   const [stocks, setStocks] = useState(initialStockData);
@@ -26,51 +27,10 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
   );
   const [confidenceScore, setConfidenceScore] = useState(initialConfidence);
 
-  // Load portfolio from Supabase on mount
+  // Save portfolio to localStorage whenever it changes
   useEffect(() => {
-    loadPortfolio();
-  }, []);
-
-  const loadPortfolio = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('portfolios')
-        .select('*')
-        .eq('user_id', userData.id)
-        .single();
-
-      if (error) throw error;
-
-      setPortfolio({
-        cash: parseFloat(data.cash),
-        holdings: data.holdings || [],
-        totalValue: parseFloat(data.total_value)
-      });
-      setPortfolioLoading(false);
-    } catch (error) {
-      console.error('Error loading portfolio:', error);
-      setPortfolioLoading(false);
-    }
-  };
-
-  const savePortfolio = async (newPortfolio) => {
-    try {
-      const { error } = await supabase
-        .from('portfolios')
-        .update({
-          cash: newPortfolio.cash,
-          holdings: newPortfolio.holdings,
-          total_value: newPortfolio.totalValue,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userData.id);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving portfolio:', error);
-      alert('Error saving portfolio. Please try again.');
-    }
-  };
+    localStorage.setItem('investease_portfolio', JSON.stringify(portfolio));
+  }, [portfolio]);
 
   // Simulate real-time price updates every 5 seconds
   useEffect(() => {
@@ -95,7 +55,7 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
   const dayChangePercent = (dayChange / 10000) * 100;
 
   // Execute trade (buy or sell)
-  const handleExecuteTrade = async (symbol, shares, price, mode) => {
+  const handleExecuteTrade = (symbol, shares, price, mode) => {
     const total = shares * price;
     
     if (mode === 'buy') {
@@ -119,7 +79,6 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
       };
 
       setPortfolio(newPortfolio);
-      await savePortfolio(newPortfolio);
 
       // Update confidence score
       const tradeCount = newPortfolio.holdings.length;
@@ -162,7 +121,6 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
       };
 
       setPortfolio(newPortfolio);
-      await savePortfolio(newPortfolio);
 
       // Update confidence and show coaching
       setConfidenceScore(prev => Math.min(10, prev + 0.1));
@@ -205,45 +163,42 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
     return symbol.toLowerCase().includes(term) || stock.name.toLowerCase().includes(term);
   });
 
-  if (portfolioLoading) {
-    return (
-      <div className="min-h-screen bg-light flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-2xl font-bold text-primary mb-2">Loading your portfolio...</div>
-          <div className="text-gray">Please wait</div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-light">
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-5 py-4">
-          <div className="flex justify-between items-center flex-wrap gap-4">
-            <h1 className="text-primary text-3xl font-bold">InvestEase</h1>
-            
-            <div className="flex items-center gap-4 flex-wrap">
-              <div className="text-right hidden sm:block">
-                <div className="text-sm text-gray">Welcome back</div>
-                <div className="font-semibold text-dark">{userData.name}</div>
-              </div>
-              
-              <div className="bg-warning text-white px-4 py-2 rounded-full font-bold text-sm animate-pulse">
-                PRACTICE MODE
-              </div>
-              
-              <div className="bg-white border-2 border-primary rounded-xl px-4 py-2">
-                <div className="text-xs text-gray">Your Confidence</div>
-                <div className="text-lg font-bold text-primary">
-                  {confidenceScore.toFixed(1)}/10
-                </div>
-              </div>
-            </div>
+  <div className="max-w-7xl mx-auto px-5 py-4">
+    <div className="flex justify-between items-center flex-wrap gap-4">
+      <h1 className="text-primary text-3xl font-bold">InvestEase</h1>
+      
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="text-right hidden sm:block">
+          <div className="text-sm text-gray">Welcome back</div>
+          <div className="font-semibold text-dark">{userData.name}</div>
+        </div>
+        
+        <div className="bg-warning text-white px-4 py-2 rounded-full font-bold text-sm animate-pulse">
+          PRACTICE MODE
+        </div>
+        
+        <div className="bg-white border-2 border-primary rounded-xl px-4 py-2">
+          <div className="text-xs text-gray">Your Confidence</div>
+          <div className="text-lg font-bold text-primary">
+            {confidenceScore.toFixed(1)}/10
           </div>
         </div>
-      </header>
+
+        {/* NEW: Logout Button */}
+        <button
+          onClick={onLogout}
+          className="bg-gray-200 hover:bg-gray-300 text-dark px-4 py-2 rounded-xl font-semibold transition-all"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-5 py-6">
