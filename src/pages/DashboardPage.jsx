@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabase';
 import { stockData as initialStockData, updateStockPrices } from '../utils/stockData';
 import { getCoachingMessage } from '../utils/coachingMessages';
 import StockCard from '../components/StockCard';
@@ -6,17 +7,19 @@ import TradeModal from '../components/TradeModal';
 
 function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout }) {
   // Portfolio state
-  const [portfolio, setPortfolio] = useState(() => {
-    const saved = localStorage.getItem('investease_portfolio');
-    return saved ? JSON.parse(saved) : {
-      cash: 10000,
-      holdings: [],
-      totalValue: 10000
-    };
+  const [portfolio, setPortfolio] = useState({
+    cash: 10000,
+    holdings: [],
+    totalValue: 10000
   });
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   // Stock data state
   const [stocks, setStocks] = useState(initialStockData);
+  
+  // Transaction history state
+  const [transactions, setTransactions] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
   
   // UI state
   const [selectedStock, setSelectedStock] = useState(null);
@@ -27,10 +30,84 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
   );
   const [confidenceScore, setConfidenceScore] = useState(initialConfidence);
 
-  // Save portfolio to localStorage whenever it changes
+  // Load portfolio and transactions on mount
   useEffect(() => {
-    localStorage.setItem('investease_portfolio', JSON.stringify(portfolio));
-  }, [portfolio]);
+    loadPortfolio();
+    loadTransactions();
+  }, []);
+
+  const loadPortfolio = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('user_id', userData.id)
+        .single();
+
+      if (error) throw error;
+
+      setPortfolio({
+        cash: parseFloat(data.cash),
+        holdings: data.holdings || [],
+        totalValue: parseFloat(data.total_value)
+      });
+      setPortfolioLoading(false);
+    } catch (error) {
+      console.error('Error loading portfolio:', error);
+      setPortfolioLoading(false);
+    }
+  };
+
+  const loadTransactions = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('*')
+        .eq('user_id', userData.id)
+        .order('timestamp', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setTransactions(data || []);
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+    }
+  };
+
+  const savePortfolio = async (newPortfolio) => {
+    try {
+      const { error } = await supabase
+        .from('portfolios')
+        .update({
+          cash: newPortfolio.cash,
+          holdings: newPortfolio.holdings,
+          total_value: newPortfolio.totalValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userData.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving portfolio:', error);
+      alert('Error saving portfolio. Please try again.');
+    }
+  };
+
+  const saveTransaction = async (transactionData) => {
+    try {
+      const { error } = await supabase
+        .from('transactions')
+        .insert([transactionData]);
+
+      if (error) throw error;
+
+      // Reload transactions to show the new one
+      await loadTransactions();
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+    }
+  };
 
   // Simulate real-time price updates every 5 seconds
   useEffect(() => {
@@ -55,8 +132,9 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
   const dayChangePercent = (dayChange / 10000) * 100;
 
   // Execute trade (buy or sell)
-  const handleExecuteTrade = (symbol, shares, price, mode) => {
+  const handleExecuteTrade = async (symbol, shares, price, mode) => {
     const total = shares * price;
+    const timestamp = new Date().toISOString();
     
     if (mode === 'buy') {
       // BUY logic
@@ -79,6 +157,19 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
       };
 
       setPortfolio(newPortfolio);
+      await savePortfolio(newPortfolio);
+
+      // Save transaction
+      await saveTransaction({
+        user_id: userData.id,
+        symbol,
+        type: 'buy',
+        shares,
+        price,
+        total,
+        profit_loss: null,
+        timestamp
+      });
 
       // Update confidence score
       const tradeCount = newPortfolio.holdings.length;
@@ -121,6 +212,19 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
       };
 
       setPortfolio(newPortfolio);
+      await savePortfolio(newPortfolio);
+
+      // Save transaction with profit/loss
+      await saveTransaction({
+        user_id: userData.id,
+        symbol,
+        type: 'sell',
+        shares,
+        price,
+        total,
+        profit_loss: profit,
+        timestamp
+      });
 
       // Update confidence and show coaching
       setConfidenceScore(prev => Math.min(10, prev + 0.1));
@@ -163,42 +267,65 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
     return symbol.toLowerCase().includes(term) || stock.name.toLowerCase().includes(term);
   });
 
+  // Format date for display
+  const formatDate = (isoString) => {
+    const date = new Date(isoString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  if (portfolioLoading) {
+    return (
+      <div className="min-h-screen bg-light flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-primary mb-2">Loading your portfolio...</div>
+          <div className="text-gray">Please wait</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-light">
       {/* Header */}
       <header className="bg-white shadow-md sticky top-0 z-40">
-  <div className="max-w-7xl mx-auto px-5 py-4">
-    <div className="flex justify-between items-center flex-wrap gap-4">
-      <h1 className="text-primary text-3xl font-bold">InvestEase</h1>
-      
-      <div className="flex items-center gap-4 flex-wrap">
-        <div className="text-right hidden sm:block">
-          <div className="text-sm text-gray">Welcome back</div>
-          <div className="font-semibold text-dark">{userData.name}</div>
-        </div>
-        
-        <div className="bg-warning text-white px-4 py-2 rounded-full font-bold text-sm animate-pulse">
-          PRACTICE MODE
-        </div>
-        
-        <div className="bg-white border-2 border-primary rounded-xl px-4 py-2">
-          <div className="text-xs text-gray">Your Confidence</div>
-          <div className="text-lg font-bold text-primary">
-            {confidenceScore.toFixed(1)}/10
+        <div className="max-w-7xl mx-auto px-5 py-4">
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <h1 className="text-primary text-3xl font-bold">InvestEase</h1>
+            
+            <div className="flex items-center gap-4 flex-wrap">
+              <div className="text-right hidden sm:block">
+                <div className="text-sm text-gray">Welcome back</div>
+                <div className="font-semibold text-dark">{userData.name}</div>
+              </div>
+              
+              <div className="bg-warning text-white px-4 py-2 rounded-full font-bold text-sm animate-pulse">
+                PRACTICE MODE
+              </div>
+              
+              <div className="bg-white border-2 border-primary rounded-xl px-4 py-2">
+                <div className="text-xs text-gray">Your Confidence</div>
+                <div className="text-lg font-bold text-primary">
+                  {confidenceScore.toFixed(1)}/10
+                </div>
+              </div>
+
+              {/* Logout Button */}
+              <button
+                onClick={onLogout}
+                className="bg-gray-200 hover:bg-gray-300 text-dark px-4 py-2 rounded-xl font-semibold transition-all"
+              >
+                Logout
+              </button>
+            </div>
           </div>
         </div>
-
-        {/* NEW: Logout Button */}
-        <button
-          onClick={onLogout}
-          className="bg-gray-200 hover:bg-gray-300 text-dark px-4 py-2 rounded-xl font-semibold transition-all"
-        >
-          Logout
-        </button>
-      </div>
-    </div>
-  </div>
-</header>
+      </header>
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-5 py-6">
@@ -211,9 +338,12 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
                 <h2 className="text-2xl font-bold text-dark">
                   Your Practice Portfolio
                 </h2>
-                <div className="tooltip">
-                  <span className="text-2xl">💡</span>
-                </div>
+                <button
+                  onClick={() => setShowHistory(!showHistory)}
+                  className="text-primary font-semibold hover:underline"
+                >
+                  {showHistory ? 'Hide History' : 'View History'}
+                </button>
               </div>
 
               <div className="mb-4">
@@ -224,6 +354,43 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
                   {dayChange >= 0 ? '+' : ''}${Math.abs(dayChange).toFixed(2)} ({dayChangePercent >= 0 ? '+' : ''}{dayChangePercent.toFixed(2)}%)
                 </div>
               </div>
+
+              {/* Transaction History */}
+              {showHistory && (
+                <div className="mb-6 border-t-2 border-light pt-4">
+                  <h3 className="font-bold text-dark mb-3">Recent Transactions</h3>
+                  {transactions.length === 0 ? (
+                    <div className="text-center py-4 text-gray">No transactions yet</div>
+                  ) : (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {transactions.map(tx => (
+                        <div key={tx.id} className="flex justify-between items-center p-3 bg-light rounded-lg">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={`font-bold ${tx.type === 'buy' ? 'text-primary' : 'text-danger'}`}>
+                                {tx.type.toUpperCase()}
+                              </span>
+                              <span className="font-semibold text-dark">{tx.symbol}</span>
+                            </div>
+                            <div className="text-sm text-gray">
+                              {tx.shares} shares @ ${parseFloat(tx.price).toFixed(2)}
+                            </div>
+                            <div className="text-xs text-gray">{formatDate(tx.timestamp)}</div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-dark">${parseFloat(tx.total).toFixed(2)}</div>
+                            {tx.profit_loss !== null && (
+                              <div className={`text-sm font-semibold ${tx.profit_loss >= 0 ? 'text-success' : 'text-danger'}`}>
+                                {tx.profit_loss >= 0 ? '+' : ''}${parseFloat(tx.profit_loss).toFixed(2)} P/L
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Holdings */}
               <div className="mt-6">
