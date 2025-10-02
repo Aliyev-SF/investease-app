@@ -1,28 +1,32 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './utils/supabase';
+
+// Page Components
 import LoginPage from './pages/LoginPage';
 import AssessmentPage from './pages/AssessmentPage';
+import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
+import PortfolioPage from './pages/PortfolioPage';
+import MarketPage from './pages/MarketPage';
+import HistoryPage from './pages/HistoryPage';
 
 function App() {
-  const [currentView, setCurrentView] = useState('loading'); // Start with loading
+  const [currentView, setCurrentView] = useState('loading');
   const [userData, setUserData] = useState(null);
   const [confidenceScore, setConfidenceScore] = useState(3.2);
 
   // Check for existing session on mount
   useEffect(() => {
-    // Check if user is already logged in
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        // User has active session - load their profile and go to dashboard
         loadUserProfile(session.user.id);
       } else {
-        // No session - show login
         setCurrentView('login');
       }
     });
 
-    // Listen for auth changes (login/logout)
+    // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event) => {
       if (_event === 'SIGNED_OUT') {
         setUserData(null);
@@ -52,7 +56,7 @@ function App() {
         returning: true
       });
 
-      setCurrentView('dashboard');
+      setCurrentView('app');
     } catch (error) {
       console.error('Error loading profile:', error);
       setCurrentView('login');
@@ -62,9 +66,8 @@ function App() {
   const handleLogin = (data) => {
     setUserData(data);
     
-    // If returning user, skip assessment and go straight to dashboard
     if (data.returning) {
-      setCurrentView('dashboard');
+      setCurrentView('app');
     } else {
       setCurrentView('assessment');
     }
@@ -79,10 +82,10 @@ function App() {
 
   const handleAssessmentComplete = (score) => {
     setConfidenceScore(score);
-    setCurrentView('dashboard');
+    setCurrentView('app');
   };
 
-  // Show loading while checking session
+  // Loading state
   if (currentView === 'loading') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary to-purple-700 flex items-center justify-center">
@@ -94,11 +97,12 @@ function App() {
     );
   }
 
-  // Render the appropriate page based on currentView
+  // Login view
   if (currentView === 'login') {
     return <LoginPage onLogin={handleLogin} />;
   }
 
+  // Assessment view
   if (currentView === 'assessment') {
     return (
       <AssessmentPage 
@@ -108,17 +112,53 @@ function App() {
     );
   }
 
-  if (currentView === 'dashboard') {
-    return (
-      <DashboardPage 
+  // Main app with routing
+  return (
+    <Router>
+      <Layout 
         userData={userData} 
         confidenceScore={confidenceScore}
         onLogout={handleLogout}
-      />
-    );
-  }
-
-  return null;
+      >
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route 
+            path="/dashboard" 
+            element={
+              <DashboardPage 
+                userData={userData}
+              />
+            } 
+          />
+          <Route 
+            path="/portfolio" 
+            element={
+              <PortfolioPage 
+                userData={userData}
+              />
+            } 
+          />
+          <Route 
+            path="/market" 
+            element={
+              <MarketPage 
+                userData={userData}
+              />
+            } 
+          />
+          <Route 
+            path="/history" 
+            element={
+              <HistoryPage 
+                userData={userData}
+              />
+            } 
+          />
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Layout>
+    </Router>
+  );
 }
 
 export default App;
