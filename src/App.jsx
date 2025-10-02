@@ -10,7 +10,13 @@ function App() {
 
   const handleLogin = (data) => {
     setUserData(data);
-    setCurrentView('assessment');
+    
+    // If returning user, skip assessment and go straight to dashboard
+    if (data.returning) {
+      setCurrentView('dashboard');
+    } else {
+      setCurrentView('assessment');
+    }
   };
 
   const handleAssessmentComplete = (score) => {
