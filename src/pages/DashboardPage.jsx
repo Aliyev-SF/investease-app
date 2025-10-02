@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../utils/supabase';
 import { stockData as initialStockData, updateStockPrices } from '../utils/stockData';
 import { getCoachingMessage } from '../utils/coachingMessages';
 import StockCard from '../components/StockCard';
@@ -6,14 +7,12 @@ import TradeModal from '../components/TradeModal';
 
 function DashboardPage({ userData, confidenceScore: initialConfidence }) {
   // Portfolio state
-  const [portfolio, setPortfolio] = useState(() => {
-    const saved = localStorage.getItem('investease_portfolio');
-    return saved ? JSON.parse(saved) : {
-      cash: 10000,
-      holdings: [],
-      totalValue: 10000
-    };
+  const [portfolio, setPortfolio] = useState({
+    cash: 10000,
+    holdings: [],
+    totalValue: 10000
   });
+  const [portfolioLoading, setPortfolioLoading] = useState(true);
 
   // Stock data state
   const [stocks, setStocks] = useState(initialStockData);
@@ -27,10 +26,51 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
   );
   const [confidenceScore, setConfidenceScore] = useState(initialConfidence);
 
-  // Save portfolio to localStorage whenever it changes
+  // Load portfolio from Supabase on mount
   useEffect(() => {
-    localStorage.setItem('investease_portfolio', JSON.stringify(portfolio));
-  }, [portfolio]);
+    loadPortfolio();
+  }, []);
+
+  const loadPortfolio = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('portfolios')
+        .select('*')
+        .eq('user_id', userData.id)
+        .single();
+
+      if (error) throw error;
+
+      setPortfolio({
+        cash: parseFloat(data.cash),
+        holdings: data.holdings || [],
+        totalValue: parseFloat(data.total_value)
+      });
+      setPortfolioLoading(false);
+    } catch (error) {
+      console.error('Error loading portfolio:', error);
+      setPortfolioLoading(false);
+    }
+  };
+
+  const savePortfolio = async (newPortfolio) => {
+    try {
+      const { error } = await supabase
+        .from('portfolios')
+        .update({
+          cash: newPortfolio.cash,
+          holdings: newPortfolio.holdings,
+          total_value: newPortfolio.totalValue,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userData.id);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error saving portfolio:', error);
+      alert('Error saving portfolio. Please try again.');
+    }
+  };
 
   // Simulate real-time price updates every 5 seconds
   useEffect(() => {
@@ -55,7 +95,7 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
   const dayChangePercent = (dayChange / 10000) * 100;
 
   // Execute trade (buy or sell)
-  const handleExecuteTrade = (symbol, shares, price, mode) => {
+  const handleExecuteTrade = async (symbol, shares, price, mode) => {
     const total = shares * price;
     
     if (mode === 'buy') {
@@ -79,6 +119,7 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
       };
 
       setPortfolio(newPortfolio);
+      await savePortfolio(newPortfolio);
 
       // Update confidence score
       const tradeCount = newPortfolio.holdings.length;
@@ -121,6 +162,7 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
       };
 
       setPortfolio(newPortfolio);
+      await savePortfolio(newPortfolio);
 
       // Update confidence and show coaching
       setConfidenceScore(prev => Math.min(10, prev + 0.1));
@@ -162,6 +204,17 @@ function DashboardPage({ userData, confidenceScore: initialConfidence }) {
     const term = searchTerm.toLowerCase();
     return symbol.toLowerCase().includes(term) || stock.name.toLowerCase().includes(term);
   });
+
+  if (portfolioLoading) {
+    return (
+      <div className="min-h-screen bg-light flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-primary mb-2">Loading your portfolio...</div>
+          <div className="text-gray">Please wait</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-light">

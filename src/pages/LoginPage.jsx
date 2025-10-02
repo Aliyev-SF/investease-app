@@ -61,6 +61,22 @@ function LoginPage({ onLogin }) {
 
       if (profileError) throw profileError;
 
+      // Create initial portfolio for user
+      const { error: portfolioError } = await supabase
+        .from('portfolios')
+        .insert([
+          {
+            user_id: authData.user.id,
+            cash: 10000,
+            holdings: [],
+            total_value: 10000,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          }
+        ]);
+
+      if (portfolioError) throw portfolioError;
+
       // Pass user data to parent component
       onLogin({
         id: authData.user.id,
