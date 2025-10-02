@@ -34,6 +34,7 @@ function DashboardPage({ userData, confidenceScore: initialConfidence, onLogout 
   useEffect(() => {
     loadPortfolio();
     loadTransactions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadPortfolio = async () => {

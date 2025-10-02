@@ -23,7 +23,7 @@ function App() {
     });
 
     // Listen for auth changes (login/logout)
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event) => {
       if (_event === 'SIGNED_OUT') {
         setUserData(null);
         setCurrentView('login');
