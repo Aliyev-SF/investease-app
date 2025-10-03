@@ -4,14 +4,20 @@ import { useState, useEffect } from 'react';
 function Layout({ children, userData, confidenceScore, onLogout }) {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  // Load sidebar preference from localStorage
+  // Load sidebar preference from localStorage (desktop only)
   useEffect(() => {
     const saved = localStorage.getItem('sidebarCollapsed');
     if (saved !== null) {
       setSidebarCollapsed(saved === 'true');
     }
   }, []);
+
+  // Close mobile menu when route changes
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location]);
 
   // Save preference when changed
   const toggleSidebar = () => {
@@ -42,39 +48,53 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
     <div className="min-h-screen bg-light flex flex-col">
       {/* Top Header */}
       <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-50">
-        <div className="px-6 py-4">
+        <div className="px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
-            {/* Logo */}
-            <div className="flex items-center gap-4">
-              <h1 className="text-primary text-3xl font-bold">InvestEase</h1>
+            {/* Left: Hamburger + Logo */}
+            <div className="flex items-center gap-3">
+              {/* Mobile Hamburger Menu */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-all"
+              >
+                <svg className="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {mobileMenuOpen ? (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  ) : (
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  )}
+                </svg>
+              </button>
+              
+              <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
             </div>
             
             {/* Right Side */}
-            <div className="flex items-center gap-4">
-              {/* Practice Mode Badge */}
-              <div className="bg-warning text-white px-4 py-2 rounded-full font-bold text-sm animate-pulse hidden sm:block">
-                PRACTICE MODE
+            <div className="flex items-center gap-2 sm:gap-4">
+              {/* Practice Mode Badge - Hidden on small mobile */}
+              <div className="bg-warning text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-xs sm:text-sm animate-pulse hidden xs:block">
+                PRACTICE
               </div>
               
               {/* Confidence Score */}
-              <div className="bg-white border-2 border-primary rounded-xl px-4 py-2">
-                <div className="text-xs text-gray hidden sm:block">Your Confidence</div>
-                <div className="text-lg font-bold text-primary">
+              <div className="bg-white border-2 border-primary rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2">
+                <div className="text-xs font-bold text-primary">
                   {confidenceScore.toFixed(1)}/10
                 </div>
               </div>
 
               {/* User Section */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {/* User name - hidden on mobile */}
                 <div className="text-right hidden md:block">
-                  <div className="text-sm text-gray">Welcome back</div>
-                  <div className="font-semibold text-dark">{userData.name}</div>
+                  <div className="text-xs text-gray">Welcome</div>
+                  <div className="font-semibold text-dark text-sm">{userData.name}</div>
                 </div>
                 
                 {/* Logout Button */}
                 <button
                   onClick={onLogout}
-                  className="bg-gray-200 hover:bg-gray-300 text-dark px-4 py-2 rounded-xl font-semibold transition-all"
+                  className="bg-gray-200 hover:bg-gray-300 text-dark px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all"
                 >
                   Logout
                 </button>
@@ -84,16 +104,29 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
         </div>
       </header>
 
-      {/* Main Layout with Sidebar */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Sidebar */}
+      {/* Main Layout */}
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Mobile Overlay */}
+        {mobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+        )}
+
+        {/* Sidebar - Desktop: Always visible | Mobile: Slide-in overlay */}
         <aside 
-          className={`bg-dark text-white flex-shrink-0 overflow-y-auto transition-all duration-300 ${
-            sidebarCollapsed ? 'w-20' : 'w-60'
-          }`}
+          className={`
+            bg-dark text-white flex-shrink-0 overflow-y-auto transition-all duration-300 z-40
+            ${sidebarCollapsed ? 'w-20' : 'w-60'}
+            lg:relative lg:translate-x-0
+            fixed inset-y-0 left-0 
+            ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          `}
+          style={{ top: '73px' }} // Below header
         >
-          {/* Toggle Button */}
-          <div className="p-4 border-b border-gray-700">
+          {/* Toggle Button - Desktop only */}
+          <div className="p-4 border-b border-gray-700 hidden lg:block">
             <button
               onClick={toggleSidebar}
               className="w-full flex items-center justify-center p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-all"
@@ -111,15 +144,15 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-6 py-3 transition-all border-l-4 ${
+                className={`flex items-center gap-3 px-6 py-4 transition-all border-l-4 ${
                   isActive(item.path)
                     ? 'bg-primary bg-opacity-10 text-primary border-primary'
                     : 'border-transparent text-gray-400 hover:bg-white hover:bg-opacity-5 hover:text-white'
                 }`}
                 title={sidebarCollapsed ? item.label : ''}
               >
-                <span className="text-xl">{item.icon}</span>
-                {!sidebarCollapsed && <span className="font-medium">{item.label}</span>}
+                <span className="text-2xl">{item.icon}</span>
+                {!sidebarCollapsed && <span className="font-medium text-lg">{item.label}</span>}
               </Link>
             ))}
 
@@ -130,13 +163,13 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
             {futureNavItems.map((item) => (
               <div
                 key={item.path}
-                className="flex items-center gap-3 px-6 py-3 text-gray-600 cursor-not-allowed opacity-50"
+                className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
                 title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
               >
-                <span className="text-xl">{item.icon}</span>
+                <span className="text-2xl">{item.icon}</span>
                 {!sidebarCollapsed && (
                   <>
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium text-lg">{item.label}</span>
                     <span className="text-xs ml-auto">Soon</span>
                   </>
                 )}
@@ -150,13 +183,13 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
             {settingsItems.map((item) => (
               <div
                 key={item.path}
-                className="flex items-center gap-3 px-6 py-3 text-gray-600 cursor-not-allowed opacity-50"
+                className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
                 title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
               >
-                <span className="text-xl">{item.icon}</span>
+                <span className="text-2xl">{item.icon}</span>
                 {!sidebarCollapsed && (
                   <>
-                    <span className="font-medium">{item.label}</span>
+                    <span className="font-medium text-lg">{item.label}</span>
                     <span className="text-xs ml-auto">Soon</span>
                   </>
                 )}
