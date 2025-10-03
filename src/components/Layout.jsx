@@ -31,11 +31,11 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
     { path: '/portfolio', icon: '💼', label: 'Portfolio' },
     { path: '/market', icon: '📈', label: 'Market' },
     { path: '/history', icon: '📜', label: 'History' },
+    { path: '/progress', icon: '🏆', label: 'Progress' },
   ];
 
   const futureNavItems = [
     { path: '/learn', icon: '📚', label: 'Learn', disabled: true },
-    { path: '/progress', icon: '🏆', label: 'Progress', disabled: true },
   ];
 
   const settingsItems = [

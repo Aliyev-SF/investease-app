@@ -4,7 +4,7 @@ import { stockData as initialStockData, updateStockPrices } from '../utils/stock
 import StockCard from '../components/StockCard';
 import TradeModal from '../components/TradeModal';
 
-function MarketPage({ userData }) {
+function MarketPage({ userData, confidenceScore, onConfidenceUpdate }) {
   const [portfolio, setPortfolio] = useState({
     cash: 10000,
     holdings: [],
@@ -125,6 +125,16 @@ function MarketPage({ userData }) {
       profit_loss: null,
       timestamp
     });
+
+    // Update confidence score
+    const tradeCount = newPortfolio.holdings.length;
+    if (tradeCount === 1) {
+      onConfidenceUpdate(confidenceScore + 0.5); // First trade
+    } else if (tradeCount >= 3) {
+      onConfidenceUpdate(confidenceScore + 0.3); // Diversification
+    } else {
+      onConfidenceUpdate(confidenceScore + 0.2); // Regular buy
+    }
 
     setSelectedStock(null);
   };

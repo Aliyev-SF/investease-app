@@ -3,7 +3,7 @@ import { supabase } from '../utils/supabase';
 import { stockData as initialStockData, updateStockPrices } from '../utils/stockData';
 import TradeModal from '../components/TradeModal';
 
-function PortfolioPage({ userData }) {
+function PortfolioPage({ userData, confidenceScore, onConfidenceUpdate }) {
   const [portfolio, setPortfolio] = useState({
     cash: 10000,
     holdings: [],
@@ -128,6 +128,16 @@ function PortfolioPage({ userData }) {
         profit_loss: null,
         timestamp
       });
+
+      // Update confidence score
+      const tradeCount = newPortfolio.holdings.length;
+      if (tradeCount === 1) {
+        onConfidenceUpdate(confidenceScore + 0.5); // First trade
+      } else if (tradeCount >= 3) {
+        onConfidenceUpdate(confidenceScore + 0.3); // Diversification
+      } else {
+        onConfidenceUpdate(confidenceScore + 0.2); // Regular buy
+      }
     } else {
       const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
       
@@ -163,6 +173,9 @@ function PortfolioPage({ userData }) {
         profit_loss: profit,
         timestamp
       });
+
+      // Update confidence score
+      onConfidenceUpdate(confidenceScore + 0.1);
     }
 
     setSelectedStock(null);

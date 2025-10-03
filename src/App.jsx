@@ -10,6 +10,7 @@ import DashboardPage from './pages/DashboardPage';
 import PortfolioPage from './pages/PortfolioPage';
 import MarketPage from './pages/MarketPage';
 import HistoryPage from './pages/HistoryPage';
+import ProgressPage from './pages/ProgressPage';
 
 function App() {
   const [currentView, setCurrentView] = useState('loading');
@@ -85,6 +86,28 @@ function App() {
     setCurrentView('app');
   };
 
+  const handleConfidenceUpdate = (newScore) => {
+    const updatedScore = Math.min(10, newScore);
+    setConfidenceScore(updatedScore);
+    
+    // Save to confidence history
+    saveConfidenceHistory(updatedScore);
+  };
+
+  const saveConfidenceHistory = async (score) => {
+    try {
+      if (userData?.id) {
+        await supabase.from('confidence_history').insert([{
+          user_id: userData.id,
+          score: score,
+          recorded_at: new Date().toISOString()
+        }]);
+      }
+    } catch (error) {
+      console.error('Error saving confidence history:', error);
+    }
+  };
+
   // Loading state
   if (currentView === 'loading') {
     return (
@@ -135,6 +158,8 @@ function App() {
             element={
               <PortfolioPage 
                 userData={userData}
+                confidenceScore={confidenceScore}
+                onConfidenceUpdate={handleConfidenceUpdate}
               />
             } 
           />
@@ -143,6 +168,8 @@ function App() {
             element={
               <MarketPage 
                 userData={userData}
+                confidenceScore={confidenceScore}
+                onConfidenceUpdate={handleConfidenceUpdate}
               />
             } 
           />
@@ -151,6 +178,15 @@ function App() {
             element={
               <HistoryPage 
                 userData={userData}
+              />
+            } 
+          />
+          <Route 
+            path="/progress" 
+            element={
+              <ProgressPage 
+                userData={userData}
+                confidenceScore={confidenceScore}
               />
             } 
           />
