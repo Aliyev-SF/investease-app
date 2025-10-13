@@ -1,12 +1,35 @@
 import { useState } from 'react';
 
 function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecuteTrade, mode = 'buy' }) {
-  const [shares, setShares] = useState(1);
+  // Store as string to allow empty state during typing
+  const [sharesInput, setSharesInput] = useState('1');
   
   const isBuying = mode === 'buy';
+  
+  // Parse shares for calculations
+  const shares = sharesInput === '' ? 0 : parseInt(sharesInput) || 0;
   const total = shares * stock.price;
   const canAfford = isBuying ? total <= availableCash : shares <= (userShares || 0);
   const maxShares = isBuying ? Math.floor(availableCash / stock.price) : (userShares || 0);
+  
+  const handleSharesChange = (e) => {
+    const value = e.target.value;
+    
+    // Allow empty string
+    if (value === '') {
+      setSharesInput('');
+      return;
+    }
+    
+    // Only allow numbers
+    if (/^\d+$/.test(value)) {
+      setSharesInput(value);
+    }
+  };
+  
+  const handleQuickSelect = (amount) => {
+    setSharesInput(amount.toString());
+  };
   
   const handleTrade = () => {
     if (shares <= 0) {
@@ -72,21 +95,43 @@ function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecu
           <label className="block text-dark font-semibold mb-2">
             Number of Shares
           </label>
+          
+          {/* Quick Select Buttons */}
+          <div className="flex gap-2 mb-3">
+            {[1, 5, 10, 25, 50].map(num => (
+              <button
+                key={num}
+                onClick={() => handleQuickSelect(num)}
+                disabled={isBuying && num > maxShares}
+                className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
+                  sharesInput === num.toString()
+                    ? 'bg-primary text-white'
+                    : isBuying && num > maxShares
+                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                    : 'bg-gray-100 text-dark hover:bg-primary hover:text-white'
+                }`}
+              >
+                {num}
+              </button>
+            ))}
+          </div>
+          
           <div className="flex gap-2">
             <input
-              type="number"
-              min="1"
-              max={maxShares}
-              value={shares}
-              onChange={(e) => setShares(parseInt(e.target.value) || 1)}
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={sharesInput}
+              onChange={handleSharesChange}
+              placeholder="0"
               className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-lg font-semibold"
             />
-            {!isBuying && (
+            {!isBuying && userShares > 0 && (
               <button
-                onClick={() => setShares(userShares)}
-                className="px-4 py-3 bg-gray-200 text-dark font-semibold rounded-xl hover:bg-gray-300 transition-all"
+                onClick={() => handleQuickSelect(userShares)}
+                className="px-4 py-3 bg-gray-200 text-dark font-semibold rounded-xl hover:bg-gray-300 transition-all whitespace-nowrap"
               >
-                All
+                All ({userShares})
               </button>
             )}
           </div>
@@ -103,7 +148,7 @@ function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecu
             <span className="text-gray">
               {isBuying ? 'Order Total:' : 'You Receive:'}
             </span>
-            <span className={`font-bold text-lg ${!canAfford && isBuying ? 'text-danger' : 'text-success'}`}>
+            <span className={`font-bold text-lg ${!canAfford && isBuying && shares > 0 ? 'text-danger' : 'text-success'}`}>
               ${total.toFixed(2)}
             </span>
           </div>
@@ -115,7 +160,7 @@ function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecu
               ${isBuying ? availableCash.toFixed(2) : (availableCash + total).toFixed(2)}
             </span>
           </div>
-          {!canAfford && (
+          {!canAfford && shares > 0 && (
             <div className="mt-3 text-danger text-sm font-semibold">
               ⚠️ {isBuying ? 'Insufficient virtual funds' : `You only own ${userShares} shares`}
             </div>
@@ -138,9 +183,9 @@ function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecu
         <div className="flex gap-3">
           <button
             onClick={handleTrade}
-            disabled={!canAfford}
+            disabled={!canAfford || shares <= 0}
             className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
-              canAfford
+              canAfford && shares > 0
                 ? `${isBuying ? 'bg-primary hover:bg-primary-dark' : 'bg-danger hover:bg-red-600'} text-white hover:shadow-lg`
                 : 'bg-gray-300 text-gray cursor-not-allowed'
             }`}
