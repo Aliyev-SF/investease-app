@@ -192,33 +192,34 @@ function MarketPage({ userData, confidenceScore, onConfidenceUpdate }) {
       </div>
 
       {/* Stock Grid */}
-      <div className="bg-white rounded-3xl p-6 shadow-lg">
-        <h3 className="text-xl font-bold text-dark mb-4">
-          Available Stocks ({filteredStocks.length})
-        </h3>
+    <div className="bg-white rounded-3xl p-6 shadow-lg">
+            <h3 className="text-xl font-bold text-dark mb-4">
+              Available Stocks ({filteredStocks.length})
+            </h3>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredStocks.map(([symbol, stock]) => (
-            <StockCard 
-              key={symbol}
-              symbol={symbol}
-              stock={stock}
-              onClick={() => handleBuyStock(symbol)}
-            />
-          ))}
-        </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredStocks.map(([symbol, stock]) => (
+                <StockCard 
+                  key={symbol}
+                  symbol={symbol}
+                  stock={stock}
+                  onClick={() => handleBuyStock(symbol)}
+                  userData={userData}
+                />
+              ))}
+            </div>
 
-        {filteredStocks.length === 0 && (
-          <div className="text-center py-12 text-gray">
-            <div className="text-5xl mb-4">🔍</div>
-            <div className="text-lg mb-2">No stocks found</div>
-            <div className="text-sm">Try a different search term</div>
+            {filteredStocks.length === 0 && (
+              <div className="text-center py-12 text-gray">
+                <div className="text-5xl mb-4">🔍</div>
+                <div className="text-lg mb-2">No stocks found</div>
+                <div className="text-sm">Try a different search term</div>
+              </div>
+            )}
           </div>
-        )}
-      </div>
 
       {/* Trade Modal */}
-      {selectedStock && (
+         {selectedStock && (
         <TradeModal
           symbol={selectedStock}
           stock={stocks[selectedStock]}
@@ -227,6 +228,7 @@ function MarketPage({ userData, confidenceScore, onConfidenceUpdate }) {
           mode="buy"
           onClose={() => setSelectedStock(null)}
           onExecuteTrade={handleExecuteTrade}
+          userData={userData}
         />
       )}
     </div>

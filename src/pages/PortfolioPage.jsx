@@ -301,6 +301,7 @@ function PortfolioPage({ userData, confidenceScore, onConfidenceUpdate }) {
           mode={tradeMode}
           onClose={() => setSelectedStock(null)}
           onExecuteTrade={handleExecuteTrade}
+          userData={userData}
         />
       )}
     </div>

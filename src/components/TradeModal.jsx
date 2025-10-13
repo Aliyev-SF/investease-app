@@ -1,6 +1,9 @@
+// src/components/TradeModal.jsx - Complete file with tooltips
 import { useState } from 'react';
+import Tooltip from './Tooltip';
+import { getGlossaryContent, formatTermName } from '../utils/glossaryLoader';
 
-function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecuteTrade, mode = 'buy' }) {
+function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecuteTrade, mode = 'buy', userData }) {
   // Store as string to allow empty state during typing
   const [sharesInput, setSharesInput] = useState('1');
   
@@ -142,19 +145,35 @@ function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecu
           )}
         </div>
 
-        {/* Order Summary */}
+        {/* Order Summary - WITH TOOLTIPS */}
         <div className="bg-light rounded-2xl p-5 mb-6">
           <div className="flex justify-between mb-3">
-            <span className="text-gray">
+            <span className="text-gray flex items-center">
               {isBuying ? 'Order Total:' : 'You Receive:'}
+              {userData && (
+                <Tooltip
+                  term={formatTermName('market-order')}
+                  content={getGlossaryContent('market-order')}
+                  userData={userData}
+                  position="top"
+                />
+              )}
             </span>
             <span className={`font-bold text-lg ${!canAfford && isBuying && shares > 0 ? 'text-danger' : 'text-success'}`}>
               ${total.toFixed(2)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray">
+            <span className="text-gray flex items-center">
               {isBuying ? 'Available Cash:' : 'New Cash Balance:'}
+              {userData && (
+                <Tooltip
+                  term={formatTermName('portfolio')}
+                  content={getGlossaryContent('portfolio')}
+                  userData={userData}
+                  position="top"
+                />
+              )}
             </span>
             <span className="font-bold text-primary">
               ${isBuying ? availableCash.toFixed(2) : (availableCash + total).toFixed(2)}
