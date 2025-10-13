@@ -27,16 +27,17 @@ function Layout({ children, userData, confidenceScore, onLogout }) {
   };
 
   const navItems = [
-    { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-    { path: '/portfolio', icon: '💼', label: 'Portfolio' },
-    { path: '/market', icon: '📈', label: 'Market' },
-    { path: '/history', icon: '📜', label: 'History' },
-    { path: '/progress', icon: '🏆', label: 'Progress' },
-  ];
+  { path: '/dashboard', icon: '📊', label: 'Dashboard' },
+  { path: '/portfolio', icon: '💼', label: 'Portfolio' },
+  { path: '/market', icon: '📈', label: 'Market' },
+  { path: '/learn', icon: '📚', label: 'Learn' },
+  { path: '/history', icon: '📜', label: 'History' },
+  { path: '/progress', icon: '🏆', label: 'Progress' },
+];
 
-  const futureNavItems = [
-    { path: '/learn', icon: '📚', label: 'Learn', disabled: true },
-  ];
+const futureNavItems = [
+  // Removed Learn - it's now active!
+];
 
   const settingsItems = [
     { path: '/settings', icon: '⚙️', label: 'Settings', disabled: true },
