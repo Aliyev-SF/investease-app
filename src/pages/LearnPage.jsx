@@ -23,11 +23,11 @@ function LearnPage({ userData }) {
     try {
       const { data } = await supabase
         .from('user_lesson_progress')
-        .select('lesson_id, completed')
+        .select('lesson_slug, completed')  // ✅ FIXED: Changed from lesson_id
         .eq('user_id', userData.id)
         .eq('completed', true);
 
-      setCompletedLessons(data ? data.map(d => d.lesson_id) : []);
+      setCompletedLessons(data ? data.map(d => d.lesson_slug) : []);  // ✅ FIXED: Changed from lesson_id
       setLoading(false);
     } catch (error) {
       console.error('Error loading progress:', error);
@@ -145,98 +145,84 @@ function LearnPage({ userData }) {
         </div>
       )}
 
-      {/* Lesson Categories */}
-      <div className="space-y-6">
-        {Object.entries(categories).map(([categorySlug, category]) => {
-          const categoryLessons = getLessonsByCategory(categorySlug);
-          const completedCount = categoryLessons.filter(l => isLessonCompleted(l.slug)).length;
+      {/* Lessons by Category */}
+      {Object.entries(categories).map(([categoryKey, category]) => {
+        const categoryLessons = getLessonsByCategory(categoryKey);
+        
+        if (categoryLessons.length === 0) return null;
 
-          return (
-            <div key={categorySlug} className="bg-white rounded-3xl p-6 shadow-lg">
-              {/* Category Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="text-4xl">{category.icon}</div>
-                  <div>
-                    <h3 className="text-xl font-bold text-dark">{category.name}</h3>
-                    <p className="text-sm text-gray">{category.description}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-2xl font-bold text-primary">
-                    {completedCount}/{categoryLessons.length}
-                  </div>
-                  <div className="text-xs text-gray">completed</div>
-                </div>
-              </div>
-
-              {/* Category Lessons */}
-              <div className="space-y-3">
-                {categoryLessons.map(lesson => {
-                  const completed = isLessonCompleted(lesson.slug);
-
-                  return (
-                    <div
-                      key={lesson.slug}
-                      onClick={() => handleLessonClick(lesson.slug)}
-                      className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
-                        completed
-                          ? 'border-success bg-success bg-opacity-5 hover:bg-opacity-10'
-                          : 'border-gray-200 hover:border-primary hover:bg-primary hover:bg-opacity-5'
-                      }`}
-                    >
-                      {/* Lesson Icon & Status */}
-                      <div className="relative">
-                        <div className="text-4xl">{lesson.icon}</div>
-                        {completed && (
-                          <div className="absolute -top-1 -right-1 w-5 h-5 bg-success rounded-full flex items-center justify-center text-white text-xs">
-                            ✓
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Lesson Info */}
-                      <div className="flex-1">
-                        <div className="font-bold text-dark text-lg">{lesson.title}</div>
-                        <div className="text-sm text-gray">{lesson.description}</div>
-                      </div>
-
-                      {/* Lesson Meta */}
-                      <div className="flex flex-col items-end gap-1">
-                        <div className="text-sm text-gray">{lesson.duration} min</div>
-                        <div className={`text-xs px-2 py-1 rounded-full capitalize ${
-                          lesson.difficulty === 'beginner' 
-                            ? 'bg-success bg-opacity-10 text-success'
-                            : 'bg-warning bg-opacity-10 text-warning'
-                        }`}>
-                          {lesson.difficulty}
-                        </div>
-                      </div>
-
-                      {/* Arrow */}
-                      <div className={`text-xl ${completed ? 'text-success' : 'text-primary'}`}>
-                        {completed ? '✓' : '→'}
-                      </div>
-                    </div>
-                  );
-                })}
+        return (
+          <div key={categoryKey} className="mb-8">
+            {/* Category Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="text-4xl">{category.icon}</div>
+              <div>
+                <h3 className="text-2xl font-bold text-dark">{category.name}</h3>
+                <p className="text-gray text-sm">{category.description}</p>
               </div>
             </div>
-          );
-        })}
-      </div>
 
-      {/* Completion Message */}
+            {/* Lesson Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoryLessons.map(lesson => {
+                const isCompleted = isLessonCompleted(lesson.slug);
+                
+                return (
+                  <div
+                    key={lesson.slug}
+                    onClick={() => handleLessonClick(lesson.slug)}
+                    className={`bg-white rounded-2xl p-6 shadow-md cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 ${
+                      isCompleted ? 'border-2 border-success' : 'border border-gray-200'
+                    }`}
+                  >
+                    {/* Completion Badge */}
+                    {isCompleted && (
+                      <div className="flex justify-end mb-2">
+                        <div className="px-3 py-1 bg-success bg-opacity-10 text-success rounded-full text-xs font-bold flex items-center gap-1">
+                          <span>✓</span>
+                          <span>Complete</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lesson Icon */}
+                    <div className="text-5xl mb-3">{lesson.icon}</div>
+
+                    {/* Lesson Info */}
+                    <h4 className="text-xl font-bold text-dark mb-2">{lesson.title}</h4>
+                    <p className="text-gray text-sm mb-4">{lesson.description}</p>
+
+                    {/* Meta Info */}
+                    <div className="flex gap-2 text-xs">
+                      <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600">
+                        {lesson.duration} min
+                      </span>
+                      <span className="px-2 py-1 bg-gray-100 rounded-full text-gray-600 capitalize">
+                        {lesson.difficulty}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Completion Celebration */}
       {completionPercentage === 100 && (
-        <div className="mt-8 bg-gradient-to-r from-success to-primary rounded-3xl p-8 text-white text-center">
-          <div className="text-6xl mb-4">🎉</div>
-          <div className="text-3xl font-bold mb-2">Congratulations!</div>
-          <div className="text-lg opacity-90 mb-6">
+        <div className="bg-gradient-to-r from-success to-success-dark rounded-3xl p-8 text-white text-center">
+          <div className="text-7xl mb-4">🎉</div>
+          <h3 className="text-3xl font-bold mb-2">Congratulations!</h3>
+          <p className="text-lg opacity-90">
             You've completed all lessons! You're well on your way to becoming a confident investor.
-          </div>
-          <div className="text-sm opacity-75">
-            Keep practicing on InvestEase to build real-world skills!
-          </div>
+          </p>
+          <button
+            onClick={() => handleLessonClick(allLessons[0].slug)}
+            className="mt-6 px-6 py-3 bg-white text-success rounded-xl font-bold hover:bg-gray-100 transition-all"
+          >
+            Review Lessons
+          </button>
         </div>
       )}
     </div>

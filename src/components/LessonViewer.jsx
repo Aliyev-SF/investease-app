@@ -15,6 +15,9 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
   }, [lessonSlug]);
 
   const loadLesson = async () => {
+    // Reset completion state immediately to prevent stale state
+    setCompleted(false);
+    
     // Get lesson metadata
     const lessonMeta = getLessonBySlug(lessonSlug);
     setLesson(lessonMeta);
@@ -25,15 +28,18 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
 
     // Check if user already completed this lesson
     if (userData) {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('user_lesson_progress')
         .select('completed')
         .eq('user_id', userData.id)
-        .eq('lesson_id', lessonSlug)
+        .eq('lesson_slug', lessonSlug)
         .single();
 
-      if (data) {
+      // Update completion status - defaults to false if no record exists
+      if (data && !error) {
         setCompleted(data.completed);
+      } else {
+        setCompleted(false);
       }
     }
   };
@@ -49,7 +55,7 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
         .from('user_lesson_progress')
         .select('id')
         .eq('user_id', userData.id)
-        .eq('lesson_id', lessonSlug)
+        .eq('lesson_slug', lessonSlug)  // ✅ FIXED: Changed from lesson_id
         .single();
 
       if (existing) {
@@ -68,7 +74,7 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
           .from('user_lesson_progress')
           .insert({
             user_id: userData.id,
-            lesson_id: lessonSlug,
+            lesson_slug: lessonSlug,  // ✅ FIXED: Changed from lesson_id
             completed: true,
             completed_at: new Date().toISOString(),
             time_spent_seconds: timeSpent
@@ -77,8 +83,12 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
 
       setCompleted(true);
       if (onComplete) onComplete();
+      
+      // Show success message
+      alert('🎉 Lesson completed! Great job!');
     } catch (error) {
       console.error('Error marking lesson complete:', error);
+      alert('Oops! There was an error saving your progress. Please try again.');
     }
   };
 
