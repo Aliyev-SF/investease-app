@@ -1,16 +1,26 @@
-// src/pages/LearnPage.jsx
+// src/pages/LearnPage.jsx (Updated to handle ?lesson=slug query param)
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { getAllLessons, getLessonsByCategory, categories } from '../utils/lessonLoader';
 import LessonViewer from '../components/LessonViewer';
 
 function LearnPage({ userData }) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [completedLessons, setCompletedLessons] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadProgress();
+    
+    // Check if there's a lesson query parameter
+    const lessonSlug = searchParams.get('lesson');
+    if (lessonSlug) {
+      setSelectedLesson(lessonSlug);
+      // Clear the query parameter after setting the lesson
+      setSearchParams({});
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -23,11 +33,11 @@ function LearnPage({ userData }) {
     try {
       const { data } = await supabase
         .from('user_lesson_progress')
-        .select('lesson_slug, completed')  // ✅ FIXED: Changed from lesson_id
+        .select('lesson_slug, completed')
         .eq('user_id', userData.id)
         .eq('completed', true);
 
-      setCompletedLessons(data ? data.map(d => d.lesson_slug) : []);  // ✅ FIXED: Changed from lesson_id
+      setCompletedLessons(data ? data.map(d => d.lesson_slug) : []);
       setLoading(false);
     } catch (error) {
       console.error('Error loading progress:', error);
