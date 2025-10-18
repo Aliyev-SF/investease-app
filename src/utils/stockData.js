@@ -1,86 +1,88 @@
-// Mock stock data with realistic prices and movements
+// src/utils/stockData.js (Updated with P/E Ratios)
+
 export const stockData = {
-    'AAPL': {
-      name: 'Apple Inc.',
-      price: 178.50,
-      change: 2.30,
-      changePercent: 1.31,
-      peRatio: 28.5,
-      type: 'stock'
-    },
-    'GOOGL': {
-      name: 'Alphabet Inc.',
-      price: 142.20,
-      change: -1.80,
-      changePercent: -1.25,
-      peRatio: 24.8,
-      type: 'stock'
-    },
-    'MSFT': {
-      name: 'Microsoft Corp.',
-      price: 380.00,
-      change: 5.20,
-      changePercent: 1.39,
-      peRatio: 32.1,
-      type: 'stock'
-    },
-    'AMZN': {
-      name: 'Amazon.com Inc.',
-      price: 148.90,
-      change: 3.10,
-      changePercent: 2.13,
-      peRatio: 45.2,
-      type: 'stock'
-    },
-    'TSLA': {
-      name: 'Tesla Inc.',
-      price: 242.50,
-      change: -8.30,
-      changePercent: -3.31,
-      peRatio: 62.3,
-      type: 'stock'
-    },
-    'VTI': {
-      name: 'Vanguard Total Stock Market ETF',
-      price: 234.80,
-      change: 1.90,
-      changePercent: 0.82,
-      peRatio: null,
-      type: 'etf'
-    },
-    'SPY': {
-      name: 'SPDR S&P 500 ETF',
-      price: 456.30,
-      change: 2.10,
-      changePercent: 0.46,
-      peRatio: null,
-      type: 'etf'
-    },
-    'QQQ': {
-      name: 'Invesco QQQ ETF',
-      price: 385.60,
-      change: 4.20,
-      changePercent: 1.10,
-      peRatio: null,
-      type: 'etf'
-    }
-  };
+  AAPL: {
+    name: 'Apple Inc.',
+    price: 178.50,
+    change: -2.30,
+    icon: '🍎',
+    peRatio: 28.5
+  },
+  MSFT: {
+    name: 'Microsoft Corporation',
+    price: 374.20,
+    change: 3.45,
+    icon: '💻',
+    peRatio: 32.1
+  },
+  GOOGL: {
+    name: 'Alphabet Inc.',
+    price: 142.50,
+    change: 1.80,
+    icon: '🔍',
+    peRatio: 22.8
+  },
+  AMZN: {
+    name: 'Amazon.com Inc.',
+    price: 148.90,
+    change: -1.20,
+    icon: '📦',
+    peRatio: 48.3
+  },
+  TSLA: {
+    name: 'Tesla Inc.',
+    price: 242.80,
+    change: 5.60,
+    icon: '⚡',
+    peRatio: 65.4
+  },
+  NVDA: {
+    name: 'NVIDIA Corporation',
+    price: 495.30,
+    change: 8.20,
+    icon: '🎮',
+    peRatio: 78.9
+  },
+  META: {
+    name: 'Meta Platforms Inc.',
+    price: 332.40,
+    change: -4.10,
+    icon: '👤',
+    peRatio: 25.6
+  },
+  NFLX: {
+    name: 'Netflix Inc.',
+    price: 445.60,
+    change: 2.90,
+    icon: '🎬',
+    peRatio: 38.7
+  },
+  DIS: {
+    name: 'The Walt Disney Company',
+    price: 91.30,
+    change: -0.80,
+    icon: '🏰',
+    peRatio: 42.3
+  }
+};
+
+// Function to simulate price changes
+export const updateStockPrices = (stocks) => {
+  const newStocks = { ...stocks };
   
-  // Function to simulate price movements
-  export const updateStockPrices = (currentData) => {
-    const updated = { ...currentData };
+  Object.keys(newStocks).forEach(symbol => {
+    const stock = newStocks[symbol];
+    // Random price change between -2% and +2%
+    const changePercent = (Math.random() - 0.5) * 0.04;
+    const newPrice = stock.price * (1 + changePercent);
+    const priceChange = newPrice - stock.price;
     
-    Object.keys(updated).forEach(symbol => {
-      // Random change between -0.5% and +0.5%
-      const changePercent = (Math.random() - 0.5) * 1;
-      const changeAmount = updated[symbol].price * (changePercent / 100);
-      
-      updated[symbol].price = parseFloat((updated[symbol].price + changeAmount).toFixed(2));
-      updated[symbol].change = parseFloat((updated[symbol].change + changeAmount).toFixed(2));
-      updated[symbol].changePercent = parseFloat(
-        ((updated[symbol].change / updated[symbol].price) * 100).toFixed(2)
-      );
-    });
-    
-    return updated;
-  };
+    newStocks[symbol] = {
+      ...stock,
+      price: parseFloat(newPrice.toFixed(2)),
+      change: parseFloat(priceChange.toFixed(2))
+    };
+  });
+  
+  return newStocks;
+};

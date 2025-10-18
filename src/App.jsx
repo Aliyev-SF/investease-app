@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './utils/supabase';
+import { ToastProvider } from './components/ToastContainer';
 
 // Page Components
 import LoginPage from './pages/LoginPage';
@@ -136,66 +137,68 @@ function App() {
     );
   }
 
-  // Main app with routing
+  // Main app with routing - WRAPPED WITH TOASTPROVIDER
   return (
-    <Router>
-      <Layout 
-        userData={userData} 
-        confidenceScore={confidenceScore}
-        onLogout={handleLogout}
-      >
-        <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
-          <Route 
-            path="/dashboard" 
-            element={
-              <DashboardPage 
-                userData={userData}
-              />
-            } 
-          />
-          <Route 
-            path="/portfolio" 
-            element={
-              <PortfolioPage 
-                userData={userData}
-                confidenceScore={confidenceScore}
-                onConfidenceUpdate={handleConfidenceUpdate}
-              />
-            } 
-          />
-          <Route 
-            path="/market" 
-            element={
-              <MarketPage 
-                userData={userData}
-                confidenceScore={confidenceScore}
-                onConfidenceUpdate={handleConfidenceUpdate}
-              />
-            } 
-          />
-          <Route 
-            path="/history" 
-            element={
-              <HistoryPage 
-                userData={userData}
-              />
-            } 
-          />
-          <Route 
-            path="/progress" 
-            element={
-              <ProgressPage 
-                userData={userData}
-                confidenceScore={confidenceScore}
-              />
-            } 
-          />
-          <Route path="/learn" element={<LearnPage userData={userData} />} />
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </Layout>
-    </Router>
+    <ToastProvider>
+      <Router>
+        <Layout 
+          userData={userData} 
+          confidenceScore={confidenceScore}
+          onLogout={handleLogout}
+        >
+          <Routes>
+            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route 
+              path="/dashboard" 
+              element={
+                <DashboardPage 
+                  userData={userData}
+                />
+              } 
+            />
+            <Route 
+              path="/portfolio" 
+              element={
+                <PortfolioPage 
+                  userData={userData}
+                  confidenceScore={confidenceScore}
+                  onConfidenceUpdate={handleConfidenceUpdate}
+                />
+              } 
+            />
+            <Route 
+              path="/market" 
+              element={
+                <MarketPage 
+                  userData={userData}
+                  confidenceScore={confidenceScore}
+                  onConfidenceUpdate={handleConfidenceUpdate}
+                />
+              } 
+            />
+            <Route 
+              path="/history" 
+              element={
+                <HistoryPage 
+                  userData={userData}
+                />
+              } 
+            />
+            <Route 
+              path="/progress" 
+              element={
+                <ProgressPage 
+                  userData={userData}
+                  confidenceScore={confidenceScore}
+                />
+              } 
+            />
+            <Route path="/learn" element={<LearnPage userData={userData} />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Routes>
+        </Layout>
+      </Router>
+    </ToastProvider>
   );
 }
 

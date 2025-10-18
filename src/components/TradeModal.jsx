@@ -1,221 +1,262 @@
-// src/components/TradeModal.jsx - Complete file with tooltips
-import { useState } from 'react';
-import Tooltip from './Tooltip';
-import { getGlossaryContent, formatTermName } from '../utils/glossaryLoader';
+// src/components/TradeModal.jsx (Compact Header Design)
+import { useState, useEffect } from 'react';
 
-function TradeModal({ symbol, stock, availableCash, userShares, onClose, onExecuteTrade, mode = 'buy', userData }) {
-  // Store as string to allow empty state during typing
-  const [sharesInput, setSharesInput] = useState('1');
-  
-  const isBuying = mode === 'buy';
-  
-  // Parse shares for calculations
-  const shares = sharesInput === '' ? 0 : parseInt(sharesInput) || 0;
-  const total = shares * stock.price;
-  const canAfford = isBuying ? total <= availableCash : shares <= (userShares || 0);
-  const maxShares = isBuying ? Math.floor(availableCash / stock.price) : (userShares || 0);
-  
-  const handleSharesChange = (e) => {
-    const value = e.target.value;
+function TradeModal({ 
+  symbol, 
+  stock, 
+  availableCash, 
+  userShares, 
+  mode, 
+  onClose, 
+  onExecuteTrade 
+}) {
+  const [shares, setShares] = useState(1);
+  const [error, setError] = useState('');
+
+  const isBuyMode = mode === 'buy';
+  const currentPrice = stock.price;
+  const totalCost = shares * currentPrice;
+  const maxBuyShares = Math.floor(availableCash / currentPrice);
+  const maxSellShares = userShares || 0;
+
+  useEffect(() => {
+    // Reset shares when modal opens or mode changes
+    setShares(1);
+    setError('');
+  }, [mode, symbol]);
+
+  const handleSharesChange = (value) => {
+    const numValue = parseInt(value) || 0;
     
-    // Allow empty string
-    if (value === '') {
-      setSharesInput('');
-      return;
-    }
-    
-    // Only allow numbers
-    if (/^\d+$/.test(value)) {
-      setSharesInput(value);
+    if (isBuyMode) {
+      if (numValue > maxBuyShares) {
+        setError(`You can only buy ${maxBuyShares} shares with available cash`);
+        setShares(maxBuyShares);
+      } else if (numValue < 1) {
+        setShares(1);
+        setError('');
+      } else {
+        setShares(numValue);
+        setError('');
+      }
+    } else {
+      if (numValue > maxSellShares) {
+        setError(`You only own ${maxSellShares} shares`);
+        setShares(maxSellShares);
+      } else if (numValue < 1) {
+        setShares(1);
+        setError('');
+      } else {
+        setShares(numValue);
+        setError('');
+      }
     }
   };
-  
-  const handleQuickSelect = (amount) => {
-    setSharesInput(amount.toString());
+
+  const handleQuickSelect = (value) => {
+    if (value === 'all') {
+      handleSharesChange(isBuyMode ? maxBuyShares : maxSellShares);
+    } else {
+      handleSharesChange(value);
+    }
   };
-  
-  const handleTrade = () => {
-    if (shares <= 0) {
-      alert('Please enter a valid number of shares');
+
+  const handleExecute = () => {
+    if (isBuyMode && totalCost > availableCash) {
+      setError('Insufficient funds');
       return;
     }
     
-    if (isBuying && !canAfford) {
-      alert('Insufficient virtual funds for this trade');
+    if (!isBuyMode && shares > maxSellShares) {
+      setError('Insufficient shares');
       return;
     }
-    
-    if (!isBuying && shares > userShares) {
-      alert(`You only own ${userShares} shares of ${symbol}`);
-      return;
-    }
-    
-    onExecuteTrade(symbol, shares, stock.price, mode);
+
+    onExecuteTrade(symbol, shares, currentPrice, mode);
+    onClose();
   };
+
+  const newCashBalance = isBuyMode 
+    ? availableCash - totalCost 
+    : availableCash + totalCost;
+
+  const newTotalShares = isBuyMode 
+    ? userShares + shares 
+    : userShares - shares;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-5 z-50"
-      onClick={onClose}
-    >
-      <div 
-        className="bg-white rounded-3xl p-8 max-w-md w-full shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="mb-6">
-          <h2 className="text-3xl font-bold text-dark mb-2">
-            {isBuying ? 'Buy' : 'Sell'} {symbol}
-          </h2>
-          <p className="text-gray">{stock.name}</p>
-          {!isBuying && (
-            <p className="text-sm text-gray mt-1">
-              You own: {userShares} shares
-            </p>
-          )}
-        </div>
-
-        {/* Price Info */}
-        <div className="bg-light rounded-2xl p-5 mb-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <div className="text-sm text-gray mb-1">Current Price</div>
-              <div className="text-2xl font-bold text-dark">
-                ${stock.price.toFixed(2)}
-              </div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        {/* Header with Badges */}
+        <div className="bg-gradient-to-r from-primary to-primary-dark text-white p-5 rounded-t-3xl">
+          <div className="flex justify-between items-start gap-4">
+            {/* Left: Title */}
+            <div className="flex-1 min-w-0">
+              <h3 className="text-2xl font-bold mb-1 truncate">
+                {isBuyMode ? (userShares > 0 ? '' : '') : ''} {symbol}
+              </h3>
+              <p className="text-white text-opacity-90 text-sm truncate">{stock.name}</p>
             </div>
-            <div className="text-right">
-              <div className="text-sm text-gray mb-1">Today's Change</div>
-              <div className={`text-lg font-semibold ${stock.changePercent >= 0 ? 'text-success' : 'text-danger'}`}>
-                {stock.changePercent >= 0 ? '+' : ''}{stock.changePercent.toFixed(2)}%
+            
+            {/* Right: Badges */}
+            <div className="flex flex-col gap-1.5 items-end flex-shrink-0">
+              {/* Practice Mode Badge */}
+              <div className="bg-white bg-opacity-25 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap flex items-center gap-1">
+                <span>✓</span>
+                <span>Practice Mode</span>
               </div>
+              
+              {/* Ownership Badge - Only show if user owns shares */}
+              {userShares > 0 && (
+                <div className="bg-white bg-opacity-25 backdrop-blur-sm px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap">
+                  💼 You own {userShares} {userShares === 1 ? 'share' : 'shares'}
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Shares Input */}
-        <div className="mb-6">
-          <label className="block text-dark font-semibold mb-2">
-            Number of Shares
-          </label>
-          
-          {/* Quick Select Buttons */}
-          <div className="flex gap-2 mb-3">
-            {[1, 5, 10, 25, 50].map(num => (
+        {/* Body */}
+        <div className="p-6">
+          {/* Current Price */}
+          <div className="bg-gray-50 rounded-2xl p-4 mb-5">
+            <div className="text-gray text-sm mb-1">Current Price</div>
+            <div className="text-3xl font-bold text-dark">
+              ${currentPrice.toFixed(2)}
+            </div>
+          </div>
+
+          {/* Number of Shares Input */}
+          <div className="mb-5">
+            <label className="block text-sm font-semibold text-dark mb-2">
+              Number of Shares {!isBuyMode && 'to Sell'}
+            </label>
+            
+            {/* Quick Select Buttons */}
+            <div className="grid grid-cols-5 gap-2 mb-3">
               <button
-                key={num}
-                onClick={() => handleQuickSelect(num)}
-                disabled={isBuying && num > maxShares}
-                className={`flex-1 px-3 py-2 rounded-lg text-sm font-semibold transition-all ${
-                  sharesInput === num.toString()
+                onClick={() => handleQuickSelect(1)}
+                className={`py-2 rounded-lg font-semibold text-sm transition-all ${
+                  shares === 1
                     ? 'bg-primary text-white'
-                    : isBuying && num > maxShares
-                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                    : 'bg-gray-100 text-dark hover:bg-primary hover:text-white'
+                    : 'bg-gray-100 text-gray hover:bg-gray-200'
                 }`}
               >
-                {num}
+                1
               </button>
-            ))}
-          </div>
-          
-          <div className="flex gap-2">
-            <input
-              type="text"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              value={sharesInput}
-              onChange={handleSharesChange}
-              placeholder="0"
-              className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary focus:outline-none text-lg font-semibold"
-            />
-            {!isBuying && userShares > 0 && (
               <button
-                onClick={() => handleQuickSelect(userShares)}
-                className="px-4 py-3 bg-gray-200 text-dark font-semibold rounded-xl hover:bg-gray-300 transition-all whitespace-nowrap"
+                onClick={() => handleQuickSelect(5)}
+                className={`py-2 rounded-lg font-semibold text-sm transition-all ${
+                  shares === 5
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray hover:bg-gray-200'
+                }`}
               >
-                All ({userShares})
+                5
               </button>
+              <button
+                onClick={() => handleQuickSelect(10)}
+                className={`py-2 rounded-lg font-semibold text-sm transition-all ${
+                  shares === 10
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray hover:bg-gray-200'
+                }`}
+              >
+                10
+              </button>
+              <button
+                onClick={() => handleQuickSelect(25)}
+                className={`py-2 rounded-lg font-semibold text-sm transition-all ${
+                  shares === 25
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray hover:bg-gray-200'
+                }`}
+              >
+                25
+              </button>
+              <button
+                onClick={() => handleQuickSelect('all')}
+                className={`py-2 rounded-lg font-semibold text-sm transition-all ${
+                  shares === (isBuyMode ? maxBuyShares : maxSellShares)
+                    ? 'bg-primary text-white'
+                    : 'bg-gray-100 text-gray hover:bg-gray-200'
+                }`}
+              >
+                {isBuyMode ? '50' : 'All'}
+              </button>
+            </div>
+
+            {/* Input Field with Max Label */}
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min="1"
+                max={isBuyMode ? maxBuyShares : maxSellShares}
+                value={shares}
+                onChange={(e) => handleSharesChange(e.target.value)}
+                className="flex-1 px-4 py-3 border-2 border-gray-200 rounded-xl text-lg font-semibold focus:border-primary focus:outline-none transition-all"
+              />
+              <span className="text-sm text-gray whitespace-nowrap">
+                Max: {isBuyMode ? maxBuyShares : maxSellShares} {(isBuyMode ? maxBuyShares : maxSellShares) === 1 ? 'share' : 'shares'}
+              </span>
+            </div>
+
+            {error && (
+              <div className="mt-2 text-danger text-sm font-semibold">
+                {error}
+              </div>
             )}
           </div>
-          {maxShares > 0 && (
-            <div className="text-sm text-gray mt-2">
-              Max: {maxShares} shares
+
+          {/* Summary Info */}
+          <div className="space-y-2 mb-5">
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+              <span className="text-sm text-gray">
+                {isBuyMode ? 'You Pay' : 'You Receive'}
+              </span>
+              <span className={`font-semibold ${isBuyMode ? 'text-dark' : 'text-success'}`}>
+                ${totalCost.toFixed(2)}
+              </span>
             </div>
-          )}
-        </div>
 
-        {/* Order Summary - WITH TOOLTIPS */}
-        <div className="bg-light rounded-2xl p-5 mb-6">
-          <div className="flex justify-between mb-3">
-            <span className="text-gray flex items-center">
-              {isBuying ? 'Order Total:' : 'You Receive:'}
-              {userData && (
-                <Tooltip
-                  term={formatTermName('market-order')}
-                  content={getGlossaryContent('market-order')}
-                  userData={userData}
-                  position="top"
-                />
-              )}
-            </span>
-            <span className={`font-bold text-lg ${!canAfford && isBuying && shares > 0 ? 'text-danger' : 'text-success'}`}>
-              ${total.toFixed(2)}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-gray flex items-center">
-              {isBuying ? 'Available Cash:' : 'New Cash Balance:'}
-              {userData && (
-                <Tooltip
-                  term={formatTermName('portfolio')}
-                  content={getGlossaryContent('portfolio')}
-                  userData={userData}
-                  position="top"
-                />
-              )}
-            </span>
-            <span className="font-bold text-primary">
-              ${isBuying ? availableCash.toFixed(2) : (availableCash + total).toFixed(2)}
-            </span>
-          </div>
-          {!canAfford && shares > 0 && (
-            <div className="mt-3 text-danger text-sm font-semibold">
-              ⚠️ {isBuying ? 'Insufficient virtual funds' : `You only own ${userShares} shares`}
+            {userShares > 0 && (
+              <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+                <span className="text-sm text-gray">
+                  {isBuyMode ? 'New Total Shares' : 'Remaining Shares'}
+                </span>
+                <span className="font-semibold text-dark">
+                  {newTotalShares} {newTotalShares === 1 ? 'share' : 'shares'}
+                </span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
+              <span className="text-sm text-gray">New Cash Balance</span>
+              <span className="font-semibold text-success">
+                ${newCashBalance.toFixed(2)}
+              </span>
             </div>
-          )}
-        </div>
-
-        {/* Practice Mode Banner */}
-        <div className={`${isBuying ? 'bg-success' : 'bg-primary'} bg-opacity-10 border-2 ${isBuying ? 'border-success' : 'border-primary'} rounded-xl p-4 mb-6`}>
-          <div className={`font-bold ${isBuying ? 'text-success' : 'text-primary'} mb-1`}>
-            ✓ Practice Mode Active
-          </div>
-          <div className="text-sm text-dark">
-            {isBuying 
-              ? 'This is a simulated trade with virtual money. Perfect for learning!'
-              : 'Practice selling to understand how to take profits and manage your portfolio.'}
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleTrade}
-            disabled={!canAfford || shares <= 0}
-            className={`flex-1 py-3 px-6 rounded-xl font-bold transition-all ${
-              canAfford && shares > 0
-                ? `${isBuying ? 'bg-primary hover:bg-primary-dark' : 'bg-danger hover:bg-red-600'} text-white hover:shadow-lg`
-                : 'bg-gray-300 text-gray cursor-not-allowed'
-            }`}
-          >
-            {isBuying ? 'Buy' : 'Sell'} {symbol}
-          </button>
+        {/* Footer */}
+        <div className="border-t border-gray-200 p-5 flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-3 px-6 rounded-xl font-bold bg-gray-200 text-dark hover:bg-gray-300 transition-all"
+            className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all"
           >
             Cancel
+          </button>
+          <button
+            onClick={handleExecute}
+            disabled={error !== ''}
+            className={`flex-[2] px-6 py-3 rounded-xl font-semibold transition-all ${
+              isBuyMode
+                ? 'bg-primary text-white hover:bg-primary-dark'
+                : 'bg-danger text-white hover:bg-red-600'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
+          >
+            {isBuyMode ? 'Buy Now' : 'Sell Now'}
           </button>
         </div>
       </div>
