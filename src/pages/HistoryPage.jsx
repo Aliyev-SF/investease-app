@@ -1,10 +1,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
+import { trackPageView } from '../utils/analytics';
 
 function HistoryPage({ userData }) {
   const [transactions, setTransactions] = useState([]);
   const [filter, setFilter] = useState('all'); // all, buy, sell
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+  if (userData?.id) {
+    trackPageView(userData.id, 'history');
+  }
+}, [userData]);
 
   useEffect(() => {
     loadTransactions();

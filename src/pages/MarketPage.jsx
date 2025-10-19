@@ -4,6 +4,7 @@ import { supabase } from '../utils/supabase';
 import { stockData, updateStockPrices } from '../utils/stockData';
 import TradeModal from '../components/TradeModal';
 import { useToast } from '../components/ToastContainer';
+import { trackPageView } from '../utils/analytics';
 
 function MarketPage({ userData }) {
   const [stocks, setStocks] = useState(stockData);
@@ -11,6 +12,12 @@ function MarketPage({ userData }) {
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeMode, setTradeMode] = useState('buy');
   const { showToast } = useToast();
+
+  useEffect(() => {
+  if (userData?.id) {
+    trackPageView(userData.id, 'market'); // Change name per page
+  }
+}, [userData]);
 
   useEffect(() => {
     // Update prices every 5 seconds

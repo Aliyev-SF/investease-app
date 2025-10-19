@@ -2,12 +2,26 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { getLessonBySlug, getLessonContent, getNextLesson, getPreviousLesson } from '../utils/lessonLoader';
+import { trackLessonStart, trackLessonEnd } from '../utils/analytics';
 
 function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
   const [lesson, setLesson] = useState(null);
   const [content, setContent] = useState('');
   const [completed, setCompleted] = useState(false);
   const [startTime] = useState(Date.now());
+  const [lessonViewId, setLessonViewId] = useState(null);
+  const [lessonStartTime, setLessonStartTime] = useState(null);
+
+  useEffect(() => {
+  if (userData?.id && lessonSlug) {
+    const startTracking = async () => {
+      const viewId = await trackLessonStart(userData.id, lessonSlug);
+      setLessonViewId(viewId);
+      setLessonStartTime(new Date());
+    };
+    startTracking();
+  }
+}, [userData, lessonSlug]);
 
   useEffect(() => {
     loadLesson();
@@ -106,6 +120,18 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
     }
   };
 
+  const handleClose = async () => {
+  // Track lesson end
+  if (lessonViewId && lessonStartTime) {
+    await trackLessonEnd(lessonViewId, lessonStartTime);
+  }
+  
+  // Then close
+  if (onClose) {
+    onClose();
+  }
+};
+
   if (!lesson) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -123,7 +149,7 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
       <div className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
           <button
-            onClick={() => onClose && onClose()}
+            onClick={handleClose}
             className="text-gray hover:text-dark transition-colors flex items-center gap-2"
           >
             <span className="text-2xl">←</span>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { trackPageView } from '../utils/analytics';
 
 function ProgressPage({ userData, confidenceScore }) {
   const [achievements, setAchievements] = useState([]);
@@ -23,6 +24,12 @@ function ProgressPage({ userData, confidenceScore }) {
     big_win: { name: 'Big Win', icon: '🚀', description: 'Made $100+ profit on a trade' },
     portfolio_milestone: { name: 'Portfolio Builder', icon: '💼', description: 'Portfolio value over $12,000' }
   };
+
+  useEffect(() => {
+  if (userData?.id) {
+    trackPageView(userData.id, 'progress');
+  }
+}, [userData]);
 
   useEffect(() => {
     loadProgressData();

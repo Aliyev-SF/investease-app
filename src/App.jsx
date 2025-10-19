@@ -13,6 +13,7 @@ import MarketPage from './pages/MarketPage';
 import HistoryPage from './pages/HistoryPage';
 import ProgressPage from './pages/ProgressPage';
 import LearnPage from './pages/LearnPage';
+import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
 
 function App() {
   const [currentView, setCurrentView] = useState('loading');
@@ -194,6 +195,10 @@ function App() {
               } 
             />
             <Route path="/learn" element={<LearnPage userData={userData} />} />
+            <Route 
+              path="/admin/analytics" 
+              element={<AnalyticsDashboardPage userData={userData} />} 
+            />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </Layout>

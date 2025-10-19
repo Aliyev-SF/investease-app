@@ -4,12 +4,19 @@ import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
 import { getAllLessons, getLessonsByCategory, categories } from '../utils/lessonLoader';
 import LessonViewer from '../components/LessonViewer';
+import { trackPageView } from '../utils/analytics';
 
 function LearnPage({ userData }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedLesson, setSelectedLesson] = useState(null);
   const [completedLessons, setCompletedLessons] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+  if (userData?.id) {
+    trackPageView(userData.id, 'learn');
+  }
+}, [userData]);
 
   useEffect(() => {
     loadProgress();

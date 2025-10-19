@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { useNavigate } from 'react-router-dom';
 import SuggestionCard from '../components/SuggestionCard';
+import { trackPageView } from '../utils/analytics';
 import { 
   getSuggestionForContext, 
   trackSuggestionShown, 
@@ -25,6 +26,9 @@ function DashboardPage({ userData }) {
   }, []);
 
   useEffect(() => {
+    if (userData?.id) {
+      trackPageView(userData.id, 'dashboard');
+    }
     // Check for suggestions after data loads
     if (portfolio && transactions && !loading) {
       checkForSuggestions();

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { stockData } from '../utils/stockData';
 import TradeModal from '../components/TradeModal';
 import SuggestionCard from '../components/SuggestionCard';
+import { trackPageView } from '../utils/analytics';
 import { 
   getSuggestionForContext, 
   trackSuggestionShown, 
@@ -21,6 +22,11 @@ function PortfolioPage({ userData }) {
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState(null);
 
+  useEffect(() => {
+  if (userData?.id) {
+    trackPageView(userData.id, 'portfolio'); // Change name per page
+  }
+}, [userData]);
   useEffect(() => {
     loadPortfolio();
     loadTransactions();
