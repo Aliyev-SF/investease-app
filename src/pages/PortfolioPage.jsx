@@ -4,6 +4,7 @@ import { supabase } from '../utils/supabase';
 import { useNavigate } from 'react-router-dom';
 import { stockData } from '../utils/stockData';
 import TradeModal from '../components/TradeModal';
+import { useToast } from '../components/ToastContainer';
 import SuggestionCard from '../components/SuggestionCard';
 import { trackPageView } from '../utils/analytics';
 import { 
@@ -21,6 +22,7 @@ function PortfolioPage({ userData }) {
   const [tradeType, setTradeType] = useState('buy');
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState(null);
+  const { showToast } = useToast();
 
   useEffect(() => {
   if (userData?.id) {
@@ -152,7 +154,7 @@ function PortfolioPage({ userData }) {
       if (error) throw error;
     } catch (error) {
       console.error('Error saving portfolio:', error);
-      alert('Error saving portfolio. Please try again.');
+      showToast('Error saving portfolio. Please try again.', 'error');
     }
   };
 
@@ -221,12 +223,12 @@ function PortfolioPage({ userData }) {
         timestamp
       });
 
-      alert(`✅ Successfully bought ${shares} shares of ${symbol}!`);
+      showToast(`Successfully bought ${shares} shares of ${symbol}!`, 'success');
     } else {
       const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
       
       if (!existingHolding || existingHolding.shares < shares) {
-        alert('Error: Insufficient shares to sell');
+        showToast('Error: Insufficient shares to sell', 'error');
         return;
       }
 
@@ -263,8 +265,10 @@ function PortfolioPage({ userData }) {
         timestamp
       });
 
-      const profitText = profit >= 0 ? `profit of $${profit.toFixed(2)}` : `loss of $${Math.abs(profit).toFixed(2)}`;
-      alert(`✅ Successfully sold ${shares} shares of ${symbol} for a ${profitText}!`);
+      const profitText = profit >= 0 
+          ? `Profit: $${profit.toFixed(2)}` 
+          : `Loss: $${Math.abs(profit).toFixed(2)}`;
+        showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
     }
 
     handleTradeComplete();
