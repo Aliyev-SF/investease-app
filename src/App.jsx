@@ -1,3 +1,4 @@
+// src/App.jsx (Updated with confidence score integration)
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { supabase } from './utils/supabase';
@@ -34,6 +35,7 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event) => {
       if (_event === 'SIGNED_OUT') {
         setUserData(null);
+        setConfidenceScore(3.2);
         setCurrentView('login');
       }
     });
@@ -60,6 +62,8 @@ function App() {
         returning: true
       });
 
+      // ✅ Load confidence score from profile (new column!)
+      setConfidenceScore(profileData.confidence_score || 3.2);
       setCurrentView('app');
     } catch (error) {
       console.error('Error loading profile:', error);
@@ -71,6 +75,8 @@ function App() {
     setUserData(data);
     
     if (data.returning) {
+      // Load their existing confidence score
+      setConfidenceScore(data.confidence_score || 3.2);
       setCurrentView('app');
     } else {
       setCurrentView('assessment');
@@ -84,31 +90,38 @@ function App() {
     setCurrentView('login');
   };
 
-  const handleAssessmentComplete = (score) => {
+  const handleAssessmentComplete = async (score) => {
     setConfidenceScore(score);
-    setCurrentView('app');
-  };
-
-  const handleConfidenceUpdate = (newScore) => {
-    const updatedScore = Math.min(10, newScore);
-    setConfidenceScore(updatedScore);
     
-    // Save to confidence history
-    saveConfidenceHistory(updatedScore);
-  };
-
-  const saveConfidenceHistory = async (score) => {
+    // Update profile with initial confidence score
     try {
-      if (userData?.id) {
-        await supabase.from('confidence_history').insert([{
+      await supabase
+        .from('profiles')
+        .update({ confidence_score: score })
+        .eq('id', userData.id);
+      
+      // Also add to confidence_history
+      await supabase
+        .from('confidence_history')
+        .insert([{
           user_id: userData.id,
           score: score,
           recorded_at: new Date().toISOString()
         }]);
-      }
     } catch (error) {
-      console.error('Error saving confidence history:', error);
+      console.error('Error updating initial confidence score:', error);
     }
+    
+    setCurrentView('app');
+  };
+
+  // ✅ NEW: Handle confidence score updates from MarketPage
+  const handleConfidenceUpdate = (newScore) => {
+    const updatedScore = Math.min(10, newScore);
+    setConfidenceScore(updatedScore);
+    
+    // Note: Database update is handled by confidenceCalculator.js
+    // We just update the React state here for immediate UI feedback
   };
 
   // Loading state
@@ -138,22 +151,18 @@ function App() {
     );
   }
 
-  // Main app with routing - WRAPPED WITH TOASTPROVIDER
+  // Main app with routing - WRAPPED WITH TOASTPROVIDER & LAYOUT
   return (
-    <ToastProvider>
-      <Router>
-        <Layout 
-          userData={userData} 
-          confidenceScore={confidenceScore}
-          onLogout={handleLogout}
-        >
+    <Router>
+      <ToastProvider>
+        <Layout onLogout={handleLogout} userData={userData} confidenceScore={confidenceScore}>
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route 
-              path="/dashboard" 
+              path="/" 
               element={
                 <DashboardPage 
-                  userData={userData}
+                  userData={userData} 
+                  confidenceScore={confidenceScore}
                 />
               } 
             />
@@ -161,9 +170,7 @@ function App() {
               path="/portfolio" 
               element={
                 <PortfolioPage 
-                  userData={userData}
-                  confidenceScore={confidenceScore}
-                  onConfidenceUpdate={handleConfidenceUpdate}
+                  userData={userData} 
                 />
               } 
             />
@@ -172,38 +179,36 @@ function App() {
               element={
                 <MarketPage 
                   userData={userData}
-                  confidenceScore={confidenceScore}
                   onConfidenceUpdate={handleConfidenceUpdate}
                 />
               } 
             />
             <Route 
               path="/history" 
-              element={
-                <HistoryPage 
-                  userData={userData}
-                />
-              } 
+              element={<HistoryPage userData={userData} />} 
             />
             <Route 
               path="/progress" 
               element={
                 <ProgressPage 
-                  userData={userData}
+                  userData={userData} 
                   confidenceScore={confidenceScore}
                 />
               } 
             />
-            <Route path="/learn" element={<LearnPage userData={userData} />} />
             <Route 
-              path="/admin/analytics" 
+              path="/learn" 
+              element={<LearnPage userData={userData} />} 
+            />
+            <Route 
+              path="/analytics" 
               element={<AnalyticsDashboardPage userData={userData} />} 
             />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Layout>
-      </Router>
-    </ToastProvider>
+      </ToastProvider>
+    </Router>
   );
 }
 

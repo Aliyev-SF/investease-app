@@ -1,10 +1,10 @@
-// src/pages/PortfolioPage.jsx (FIXED - Recalculate Total Value)
+// src/pages/PortfolioPage.jsx (FIXED - All features working)
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { useNavigate } from 'react-router-dom';
-import { stockData } from '../utils/stockData';
-import TradeModal from '../components/TradeModal';
+import { allAssets, updateStockPrices, isETF } from '../utils/stockData';
 import { useToast } from '../components/ToastContainer';
+import TradeModal from '../components/TradeModal';
 import SuggestionCard from '../components/SuggestionCard';
 import { trackPageView } from '../utils/analytics';
 import { 
@@ -13,22 +13,36 @@ import {
   trackSuggestionDismissed,
   trackSuggestionClicked 
 } from '../utils/suggestionHelper';
+import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
+import StockIcon from '../components/icons/StockIcon';
+import ETFIcon from '../components/icons/ETFIcon';
 
-function PortfolioPage({ userData }) {
+function PortfolioPage({ userData, onConfidenceUpdate }) {
   const navigate = useNavigate();
   const [portfolio, setPortfolio] = useState(null);
   const [transactions, setTransactions] = useState([]);
+  const [stocks, setStocks] = useState(allAssets); // ✅ Local state for live prices
+  const { showToast } = useToast();
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeType, setTradeType] = useState('buy');
   const [loading, setLoading] = useState(true);
   const [suggestion, setSuggestion] = useState(null);
-  const { showToast } = useToast();
 
   useEffect(() => {
-  if (userData?.id) {
-    trackPageView(userData.id, 'portfolio'); // Change name per page
-  }
-}, [userData]);
+    if (userData?.id) {
+      trackPageView(userData.id, 'portfolio');
+    }
+  }, [userData]);
+
+  // ✅ NEW: Update stock prices every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setStocks(prevStocks => updateStockPrices(prevStocks));
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     loadPortfolio();
     loadTransactions();
@@ -82,7 +96,6 @@ function PortfolioPage({ userData }) {
   const checkForSuggestions = async () => {
     if (!userData || !portfolio || !transactions) return;
 
-    // Check if this is right after first trade
     const tradeCount = transactions.length;
     const uniqueStocks = new Set(portfolio.holdings.map(h => h.symbol)).size;
 
@@ -133,10 +146,21 @@ function PortfolioPage({ userData }) {
     setTradeType('sell');
   };
 
-  const handleTradeComplete = () => {
-    setSelectedStock(null);
-    loadPortfolio();
-    loadTransactions();
+  const getUserShares = (symbol) => {
+    if (!portfolio || !portfolio.holdings) return 0;
+    const holding = portfolio.holdings.find(h => h.symbol === symbol);
+    return holding ? holding.shares : 0;
+  };
+
+  const calculateNewTotalValue = (newCash, newHoldings) => {
+    let holdingsValue = 0;
+    newHoldings.forEach(holding => {
+      const stock = stocks[holding.symbol]; // ✅ Use live prices from state
+      if (stock) {
+        holdingsValue += holding.shares * stock.price;
+      }
+    });
+    return newCash + holdingsValue;
   };
 
   const savePortfolio = async (newPortfolio) => {
@@ -170,18 +194,6 @@ function PortfolioPage({ userData }) {
     }
   };
 
-  // ✅ Helper to calculate total value with NEW holdings and cash
-  const calculateNewTotalValue = (newCash, newHoldings) => {
-    let holdingsValue = 0;
-    newHoldings.forEach(holding => {
-      const stock = stockData[holding.symbol];
-      if (stock) {
-        holdingsValue += holding.shares * stock.price;
-      }
-    });
-    return newCash + holdingsValue;
-  };
-
   const handleExecuteTrade = async (symbol, shares, price, mode) => {
     const total = shares * price;
     const timestamp = new Date().toISOString();
@@ -189,7 +201,6 @@ function PortfolioPage({ userData }) {
     if (mode === 'buy') {
       const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
       
-      // Calculate new cash and holdings
       const newCash = portfolio.cash - total;
       const newHoldings = existingHolding
         ? portfolio.holdings.map(h =>
@@ -203,7 +214,6 @@ function PortfolioPage({ userData }) {
           )
         : [...portfolio.holdings, { symbol, shares, avgPrice: price }];
 
-      // ✅ FIXED: Recalculate total value from scratch with NEW values
       const newPortfolio = {
         cash: newCash,
         holdings: newHoldings,
@@ -223,8 +233,15 @@ function PortfolioPage({ userData }) {
         timestamp
       });
 
+      // ✅ Update confidence score after trade
+      const newScore = await recalculateConfidenceAfterTrade(userData.id);
+      if (newScore !== null && onConfidenceUpdate) {
+        onConfidenceUpdate(newScore);
+      }
+
       showToast(`Successfully bought ${shares} shares of ${symbol}!`, 'success');
     } else {
+      // SELL logic
       const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
       
       if (!existingHolding || existingHolding.shares < shares) {
@@ -235,7 +252,6 @@ function PortfolioPage({ userData }) {
       const remainingShares = existingHolding.shares - shares;
       const profit = (price - existingHolding.avgPrice) * shares;
 
-      // Calculate new cash and holdings
       const newCash = portfolio.cash + total;
       const newHoldings = remainingShares > 0
         ? portfolio.holdings.map(h =>
@@ -245,7 +261,6 @@ function PortfolioPage({ userData }) {
           )
         : portfolio.holdings.filter(h => h.symbol !== symbol);
 
-      // ✅ FIXED: Recalculate total value from scratch with NEW values
       const newPortfolio = {
         cash: newCash,
         holdings: newHoldings,
@@ -265,105 +280,86 @@ function PortfolioPage({ userData }) {
         timestamp
       });
 
+      // ✅ Update confidence score after trade
+      const newScore = await recalculateConfidenceAfterTrade(userData.id);
+      if (newScore !== null && onConfidenceUpdate) {
+        onConfidenceUpdate(newScore);
+      }
+
       const profitText = profit >= 0 
-          ? `Profit: $${profit.toFixed(2)}` 
-          : `Loss: $${Math.abs(profit).toFixed(2)}`;
-        showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
+        ? `Profit: $${profit.toFixed(2)}` 
+        : `Loss: $${Math.abs(profit).toFixed(2)}`;
+      showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
     }
 
-    handleTradeComplete();
+    loadPortfolio();
+  };
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+    }).format(value);
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-2xl font-bold text-primary">Loading portfolio...</div>
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="text-center">
+          <div className="text-2xl font-bold text-primary mb-2">Loading...</div>
+        </div>
       </div>
     );
   }
 
-  if (!portfolio) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <div className="text-xl text-gray">No portfolio found</div>
-      </div>
-    );
-  }
-
-  const totalValue = portfolio.total_value || 0;
-  const investedValue = totalValue - portfolio.cash;
+  const holdings = portfolio?.holdings || [];
+  const cash = portfolio?.cash || 10000;
+  const totalValue = portfolio?.total_value || 10000;
+  const invested = totalValue - cash;
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto">
       {/* Page Header */}
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-dark mb-2">💼 My Portfolio</h2>
-        <p className="text-gray">Manage your investments and track performance</p>
+        <h2 className="text-3xl font-bold text-dark mb-2">📊 Portfolio</h2>
+        <p className="text-gray">View and manage your investments</p>
       </div>
 
-      {/* Smart Suggestion Card */}
+      {/* Suggestion Card */}
       {suggestion && (
         <SuggestionCard
-          icon={suggestion.icon}
-          title={suggestion.title}
-          message={suggestion.message}
-          lessonTitle={suggestion.lessonTitle}
-          lessonSlug={suggestion.lessonSlug}
-          lessonDuration={suggestion.lessonDuration}
-          lessonCategory={suggestion.lessonCategory}
-          variant={suggestion.variant}
+          suggestion={suggestion}
           onLearnClick={handleSuggestionLearnClick}
           onDismiss={handleSuggestionDismiss}
         />
       )}
 
-      {/* Portfolio Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white rounded-3xl p-6 shadow-lg">
           <div className="text-gray mb-2">Total Value</div>
-          <div className="text-3xl font-bold text-dark">
-            ${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+          <div className="text-3xl font-bold text-dark">{formatCurrency(totalValue)}</div>
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-lg">
           <div className="text-gray mb-2">Available Cash</div>
-          <div className="text-3xl font-bold text-success">
-            ${portfolio.cash.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+          <div className="text-3xl font-bold text-success">{formatCurrency(cash)}</div>
         </div>
 
         <div className="bg-white rounded-3xl p-6 shadow-lg">
           <div className="text-gray mb-2">Invested</div>
-          <div className="text-3xl font-bold text-primary">
-            ${investedValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-          </div>
+          <div className="text-3xl font-bold text-primary">{formatCurrency(invested)}</div>
         </div>
       </div>
 
       {/* Holdings */}
-      <div className="bg-white rounded-3xl p-6 shadow-lg mb-6">
-        <h3 className="text-xl font-bold text-dark mb-4">
-          Your Holdings ({portfolio.holdings.length})
-        </h3>
+      <div className="bg-white rounded-3xl p-6 shadow-lg">
+        <h3 className="text-xl font-bold text-dark mb-4">Your Holdings</h3>
 
-        {portfolio.holdings.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📊</div>
-            <div className="text-xl font-bold text-dark mb-2">No Holdings Yet</div>
-            <div className="text-gray mb-4">Start by buying your first stock!</div>
-            <button
-              onClick={() => navigate('/market')}
-              className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark transition-all"
-            >
-              Browse Stocks
-            </button>
-          </div>
-        ) : (
+        {holdings.length > 0 ? (
           <div className="space-y-3">
-            {portfolio.holdings.map((holding, index) => {
-              // Get current price from stock data
-              const stockInfo = stockData[holding.symbol];
+            {holdings.map((holding, index) => {
+              const stockInfo = stocks[holding.symbol]; // ✅ Use live prices from state
               
               if (!stockInfo) {
                 console.error(`Stock ${holding.symbol} not found in stockData`);
@@ -375,28 +371,46 @@ function PortfolioPage({ userData }) {
               const costBasis = holding.shares * holding.avgPrice;
               const gainLoss = currentValue - costBasis;
               const gainLossPercent = ((gainLoss / costBasis) * 100).toFixed(2);
+              const isEtfAsset = isETF(holding.symbol);
 
               return (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-all"
+                  className="flex items-center justify-between p-5 bg-light rounded-2xl hover:bg-gray-100 transition-all"
                 >
-                  <div className="flex-1">
-                    <div className="font-bold text-lg text-dark">{holding.symbol}</div>
-                    <div className="text-sm text-gray">
-                      {holding.shares} shares @ ${holding.avgPrice.toFixed(2)} avg
+                  {/* Left: Icon + Symbol/Name + Shares */}
+                  <div className="flex items-center gap-4 flex-1">
+                    {isEtfAsset ? (
+                      <ETFIcon size={32} className="text-purple-600" />
+                    ) : (
+                      <StockIcon size={32} className="text-primary" />
+                    )}
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="font-bold text-lg text-dark">{holding.symbol}</div>
+                        {isEtfAsset && (
+                          <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
+                            ETF
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray">
+                        {holding.shares} shares @ {formatCurrency(holding.avgPrice)} avg
+                      </div>
                     </div>
                   </div>
 
+                  {/* Middle: Current Value + Gain/Loss */}
                   <div className="text-right mr-4">
-                    <div className="font-bold text-dark">
-                      ${currentValue.toFixed(2)}
+                    <div className="font-bold text-dark text-lg">
+                      {formatCurrency(currentValue)}
                     </div>
                     <div className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {gainLoss >= 0 ? '+' : ''}${gainLoss.toFixed(2)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
+                      {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
                     </div>
                   </div>
 
+                  {/* Right: Action Buttons */}
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleBuyClick(holding.symbol)}
@@ -415,20 +429,31 @@ function PortfolioPage({ userData }) {
               );
             })}
           </div>
+        ) : (
+          <div className="text-center py-12">
+            <div className="text-6xl mb-4">📊</div>
+            <div className="text-xl font-bold text-dark mb-2">No Holdings Yet</div>
+            <div className="text-gray mb-4">Start by buying your first stock or ETF!</div>
+            <button
+              onClick={() => navigate('/market')}
+              className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark transition-all"
+            >
+              Browse Market
+            </button>
+          </div>
         )}
       </div>
 
       {/* Trade Modal */}
-      {selectedStock && stockData[selectedStock] && (
+      {selectedStock && stocks[selectedStock] && portfolio && (
         <TradeModal
           symbol={selectedStock}
-          stock={stockData[selectedStock]}
+          stock={stocks[selectedStock]} // ✅ Use live prices from state
           availableCash={portfolio.cash}
-          userShares={portfolio.holdings.find(h => h.symbol === selectedStock)?.shares || 0}
+          userShares={getUserShares(selectedStock)}
           mode={tradeType}
           onClose={() => setSelectedStock(null)}
           onExecuteTrade={handleExecuteTrade}
-          userData={userData}
         />
       )}
     </div>
