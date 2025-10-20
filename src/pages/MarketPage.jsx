@@ -1,7 +1,6 @@
-// src/pages/MarketPage.jsx (FIXED - All buttons working + correct colors)
+// src/pages/MarketPage.jsx (UPDATED - Uses market_data and holdings tables)
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
-import { allAssets, updateStockPrices, isETF } from '../utils/stockData';
 import TradeModal from '../components/TradeModal';
 import { useToast } from '../components/ToastContainer';
 import { trackPageView } from '../utils/analytics';
@@ -10,8 +9,9 @@ import StockIcon from '../components/icons/StockIcon';
 import ETFIcon from '../components/icons/ETFIcon';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
-  const [activeTab, setActiveTab] = useState('stocks'); // 'stocks' or 'etfs'
-  const [stocks, setStocks] = useState(allAssets); // All assets combined
+  const [activeTab, setActiveTab] = useState('stocks');
+  const [marketData, setMarketData] = useState({}); // NEW: From market_data table
+  const [holdings, setHoldings] = useState([]); // NEW: From holdings table
   const [portfolio, setPortfolio] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeMode, setTradeMode] = useState('buy');
@@ -23,19 +23,60 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     }
   }, [userData]);
 
+  // NEW: Load market data from database
   useEffect(() => {
-    // Update prices every 5 seconds
+    loadMarketData();
+  }, []);
+
+  // Refresh market data every 30 seconds
+  useEffect(() => {
     const interval = setInterval(() => {
-      setStocks(prevStocks => updateStockPrices(prevStocks));
-    }, 5000);
+      loadMarketData();
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    loadPortfolio();
+    if (userData) {
+      loadPortfolio();
+      loadHoldings();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
+
+  // NEW: Load market data from database
+  const loadMarketData = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('market_data')
+        .select('*')
+        .eq('is_active', true)
+        .order('symbol');
+
+      if (error) throw error;
+
+      // Convert to object keyed by symbol
+      const dataObj = {};
+      data.forEach(stock => {
+        dataObj[stock.symbol] = {
+          symbol: stock.symbol,
+          name: stock.name,
+          price: parseFloat(stock.current_price),
+          change: parseFloat(stock.change || 0),
+          changePercent: parseFloat(stock.change_percent || 0),
+          icon: stock.icon || '📊',
+          peRatio: stock.pe_ratio ? parseFloat(stock.pe_ratio) : null,
+          type: stock.type,
+          description: stock.company_description
+        };
+      });
+
+      setMarketData(dataObj);
+    } catch (error) {
+      console.error('Error loading market data:', error);
+    }
+  };
 
   const loadPortfolio = async () => {
     if (!userData) return;
@@ -43,7 +84,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     try {
       const { data, error } = await supabase
         .from('portfolios')
-        .select('*')
+        .select('cash')
         .eq('user_id', userData.id)
         .single();
 
@@ -51,6 +92,23 @@ function MarketPage({ userData, onConfidenceUpdate }) {
       setPortfolio(data);
     } catch (error) {
       console.error('Error loading portfolio:', error);
+    }
+  };
+
+  // NEW: Load holdings from holdings table
+  const loadHoldings = async () => {
+    if (!userData) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('holdings')
+        .select('*')
+        .eq('user_id', userData.id);
+
+      if (error) throw error;
+      setHoldings(data || []);
+    } catch (error) {
+      console.error('Error loading holdings:', error);
     }
   };
 
@@ -65,158 +123,138 @@ function MarketPage({ userData, onConfidenceUpdate }) {
   };
 
   const getUserShares = (symbol) => {
-    if (!portfolio || !portfolio.holdings) return 0;
-    const holding = portfolio.holdings.find(h => h.symbol === symbol);
-    return holding ? holding.shares : 0;
+    const holding = holdings.find(h => h.symbol === symbol);
+    return holding ? parseFloat(holding.shares) : 0;
   };
 
-  const calculateNewTotalValue = (newCash, newHoldings) => {
-    let holdingsValue = 0;
-    newHoldings.forEach(holding => {
-      const stock = stocks[holding.symbol];
-      if (stock) {
-        holdingsValue += holding.shares * stock.price;
+  const handleExecuteTrade = async (symbol, shares, price, type) => {
+    try {
+      const totalCost = shares * price;
+      const holding = holdings.find(h => h.symbol === symbol);
+
+      if (type === 'buy') {
+        // Check sufficient funds
+        if (portfolio.cash < totalCost) {
+          showToast('Insufficient funds', 'error');
+          return;
+        }
+
+        if (holding) {
+          // Update existing holding
+          const newShares = parseFloat(holding.shares) + shares;
+          const newAvgPrice = 
+            (parseFloat(holding.shares) * parseFloat(holding.average_price) + totalCost) / newShares;
+
+          await supabase
+            .from('holdings')
+            .update({
+              shares: newShares,
+              average_price: newAvgPrice
+            })
+            .eq('id', holding.id);
+        } else {
+          // Create new holding
+          await supabase
+            .from('holdings')
+            .insert({
+              user_id: userData.id,
+              symbol,
+              shares,
+              average_price: price
+            });
+        }
+
+        // Update cash
+        await supabase
+          .from('portfolios')
+          .update({ cash: portfolio.cash - totalCost })
+          .eq('user_id', userData.id);
+
+        // Record transaction
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: userData.id,
+            symbol,
+            type: 'buy',
+            shares,
+            price,
+            total: totalCost,
+            timestamp: new Date().toISOString()
+          });
+
+        showToast(`Bought ${shares} shares of ${symbol}!`, 'success');
+      } else {
+        // Sell logic
+        if (!holding || parseFloat(holding.shares) < shares) {
+          showToast('Insufficient shares', 'error');
+          return;
+        }
+
+        const costBasis = shares * parseFloat(holding.average_price);
+        const profit = totalCost - costBasis;
+        const remainingShares = parseFloat(holding.shares) - shares;
+
+        if (remainingShares > 0) {
+          // Update holding
+          await supabase
+            .from('holdings')
+            .update({ shares: remainingShares })
+            .eq('id', holding.id);
+        } else {
+          // Delete holding
+          await supabase
+            .from('holdings')
+            .delete()
+            .eq('id', holding.id);
+        }
+
+        // Update cash
+        await supabase
+          .from('portfolios')
+          .update({ cash: portfolio.cash + totalCost })
+          .eq('user_id', userData.id);
+
+        // Record transaction
+        await supabase
+          .from('transactions')
+          .insert({
+            user_id: userData.id,
+            symbol,
+            type: 'sell',
+            shares,
+            price,
+            total: totalCost,
+            profit_loss: profit,
+            timestamp: new Date().toISOString()
+          });
+
+        const profitText = profit >= 0 
+          ? `Profit: $${profit.toFixed(2)}` 
+          : `Loss: $${Math.abs(profit).toFixed(2)}`;
+        showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
       }
-    });
-    return newCash + holdingsValue;
-  };
 
-  const savePortfolio = async (newPortfolio) => {
-    try {
-      const { error } = await supabase
-        .from('portfolios')
-        .update({
-          cash: newPortfolio.cash,
-          holdings: newPortfolio.holdings,
-          total_value: newPortfolio.totalValue,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', userData.id);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving portfolio:', error);
-      showToast('Error saving portfolio. Please try again.', 'error');
-    }
-  };
-
-  const saveTransaction = async (transactionData) => {
-    try {
-      const { error } = await supabase
-        .from('transactions')
-        .insert([transactionData]);
-
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error saving transaction:', error);
-    }
-  };
-
-  const handleExecuteTrade = async (symbol, shares, price, mode) => {
-    const total = shares * price;
-    const timestamp = new Date().toISOString();
-    
-    if (mode === 'buy') {
-      const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
-      
-      const newCash = portfolio.cash - total;
-      const newHoldings = existingHolding
-        ? portfolio.holdings.map(h =>
-            h.symbol === symbol
-              ? { 
-                  ...h, 
-                  shares: h.shares + shares, 
-                  avgPrice: ((h.avgPrice * h.shares) + (price * shares)) / (h.shares + shares) 
-                }
-              : h
-          )
-        : [...portfolio.holdings, { symbol, shares, avgPrice: price }];
-
-      const newPortfolio = {
-        cash: newCash,
-        holdings: newHoldings,
-        totalValue: calculateNewTotalValue(newCash, newHoldings)
-      };
-
-      setPortfolio({ ...portfolio, ...newPortfolio });
-      await savePortfolio(newPortfolio);
-      await saveTransaction({
-        user_id: userData.id,
-        symbol,
-        type: 'buy',
-        shares,
-        price,
-        total,
-        profit_loss: null,
-        timestamp
-      });
-
-      // ✅ Update confidence score after trade
+      // Recalculate confidence score
       const newScore = await recalculateConfidenceAfterTrade(userData.id);
-      if (newScore !== null && onConfidenceUpdate) {
+      if (newScore && onConfidenceUpdate) {
         onConfidenceUpdate(newScore);
       }
 
-      showToast(`Successfully bought ${shares} shares of ${symbol}!`, 'success');
-    } else {
-      // SELL logic
-      const existingHolding = portfolio.holdings.find(h => h.symbol === symbol);
-      
-      if (!existingHolding || existingHolding.shares < shares) {
-        showToast('Error: Insufficient shares to sell', 'error');
-        return;
-      }
-
-      const remainingShares = existingHolding.shares - shares;
-      const profit = (price - existingHolding.avgPrice) * shares;
-
-      const newCash = portfolio.cash + total;
-      const newHoldings = remainingShares > 0
-        ? portfolio.holdings.map(h =>
-            h.symbol === symbol
-              ? { ...h, shares: remainingShares }
-              : h
-          )
-        : portfolio.holdings.filter(h => h.symbol !== symbol);
-
-      const newPortfolio = {
-        cash: newCash,
-        holdings: newHoldings,
-        totalValue: calculateNewTotalValue(newCash, newHoldings)
-      };
-
-      setPortfolio({ ...portfolio, ...newPortfolio });
-      await savePortfolio(newPortfolio);
-      await saveTransaction({
-        user_id: userData.id,
-        symbol,
-        type: 'sell',
-        shares,
-        price,
-        total,
-        profit_loss: profit,
-        timestamp
-      });
-
-      // ✅ Update confidence score after trade
-      const newScore = await recalculateConfidenceAfterTrade(userData.id);
-      if (newScore !== null && onConfidenceUpdate) {
-        onConfidenceUpdate(newScore);
-      }
-
-      const profitText = profit >= 0 
-        ? `Profit: $${profit.toFixed(2)}` 
-        : `Loss: $${Math.abs(profit).toFixed(2)}`;
-      showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
+      // Reload data
+      loadPortfolio();
+      loadHoldings();
+      setSelectedStock(null);
+    } catch (error) {
+      console.error('Error executing trade:', error);
+      showToast('Trade failed. Please try again.', 'error');
     }
-
-    loadPortfolio();
   };
 
   // Filter assets based on active tab
-  const displayedAssets = activeTab === 'stocks' 
-    ? Object.entries(stocks).filter(([, asset]) => asset.type === 'stock')
-    : Object.entries(stocks).filter(([, asset]) => asset.type === 'etf');
+  const displayedAssets = Object.entries(marketData).filter(([, asset]) => 
+    activeTab === 'stocks' ? asset.type === 'stock' : asset.type === 'etf'
+  );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
@@ -262,7 +300,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
               const hasShares = userShares > 0;
               const changePercent = ((stock.change / stock.price) * 100).toFixed(2);
               const isPositive = stock.change >= 0;
-              const isEtfAsset = isETF(symbol);
+              const isEtf = stock.type === 'etf';
 
               return (
                 <div
@@ -272,67 +310,68 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   {/* Top Row: Icon + Symbol/Name + Change Badge */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      {isEtfAsset ? (
+                      {isEtf ? (
                         <ETFIcon size={32} className="text-purple-600" />
                       ) : (
                         <StockIcon size={32} className="text-primary" />
                       )}
                       <div>
-                        <div className="flex items-center gap-2">
-                          <div className="text-2xl font-bold text-dark">{symbol}</div>
-                          {isEtfAsset && (
-                            <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
-                              ETF
-                            </span>
-                          )}
-                        </div>
+                        <div className="font-bold text-lg text-dark">{symbol}</div>
                         <div className="text-sm text-gray">{stock.name}</div>
                       </div>
                     </div>
-                    <div className={`px-3 py-1 rounded-xl font-semibold text-sm ${
-                      isPositive 
-                        ? 'bg-success bg-opacity-10 text-success' 
-                        : 'bg-danger bg-opacity-10 text-danger'
+
+                    <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+                      isPositive ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'
                     }`}>
-                      {isPositive ? '📈' : '📉'} {isPositive ? '+' : ''}{changePercent}%
+                      {isPositive ? '+' : ''}{changePercent}%
                     </div>
                   </div>
 
-                  {/* Price Section */}
+                  {/* Price Row */}
                   <div className="mb-4">
-                    <div className="text-3xl font-bold text-dark mb-1">
+                    <div className="text-3xl font-bold text-dark">
                       ${stock.price.toFixed(2)}
                     </div>
-                    <div className={`text-base font-semibold ${
-                      isPositive ? 'text-success' : 'text-danger'
-                    }`}>
-                      ${isPositive ? '+' : ''}{stock.change.toFixed(2)} today
+                    <div className={`text-sm font-semibold ${isPositive ? 'text-success' : 'text-danger'}`}>
+                      {isPositive ? '+' : ''}${Math.abs(stock.change).toFixed(2)} today
                     </div>
                   </div>
 
-                  {/* Divider */}
-                  <div className="h-px bg-gray-200 my-4"></div>
-
-                  {/* P/E Ratio */}
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2 text-sm text-gray">
-                  <span>P/E Ratio</span>
-                  <div className="relative group">
-                    <div className="w-5 h-5 bg-primary rounded-full flex items-center justify-center text-white text-xs font-bold cursor-help">
-                      ?
+                  {/* Holdings Badge */}
+                  {hasShares && (
+                    <div className="mb-4 px-3 py-2 bg-primary bg-opacity-10 rounded-lg">
+                      <div className="text-xs text-primary font-semibold">
+                        You own {userShares} share{userShares !== 1 ? 's' : ''}
+                      </div>
                     </div>
-                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                      Price-to-Earnings ratio measures stock value
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-lg font-semibold text-dark">
-                  {stock.peRatio}
-                </div>
-              </div>
+                  )}
 
-                  {/* Action Buttons - FIXED: Blue primary color */}
+                  {/* P/E Ratio or ETF Badge */}
+                  {!isEtf && stock.peRatio && (
+                    <div className="mb-4 flex items-center justify-between px-3 py-2 bg-gray-100 rounded-lg">
+                      <div className="text-xs text-gray font-semibold relative group">
+                        P/E Ratio
+                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          Price-to-Earnings ratio measures stock value
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
+                        </div>
+                      </div>
+                      <div className="text-lg font-semibold text-dark">
+                        {stock.peRatio}
+                      </div>
+                    </div>
+                  )}
+
+                  {isEtf && (
+                    <div className="mb-4">
+                      <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        ETF
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
                   <div className="flex gap-2">
                     {hasShares ? (
                       <>
@@ -365,11 +404,11 @@ function MarketPage({ userData, onConfidenceUpdate }) {
         </div>
       </div>
 
-      {/* Trade Modal - FIXED: Correct props */}
-      {selectedStock && stocks[selectedStock] && portfolio && (
+      {/* Trade Modal */}
+      {selectedStock && marketData[selectedStock] && portfolio && (
         <TradeModal
           symbol={selectedStock}
-          stock={stocks[selectedStock]}
+          stock={marketData[selectedStock]}
           availableCash={portfolio.cash}
           userShares={getUserShares(selectedStock)}
           mode={tradeMode}
