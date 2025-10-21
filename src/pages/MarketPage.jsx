@@ -7,6 +7,7 @@ import { trackPageView } from '../utils/analytics';
 import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
 import StockIcon from '../components/icons/StockIcon';
 import ETFIcon from '../components/icons/ETFIcon';
+import { refreshMarketPrices } from '../services/alphaVantageService';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
   const [activeTab, setActiveTab] = useState('stocks');
@@ -259,10 +260,60 @@ function MarketPage({ userData, onConfidenceUpdate }) {
   return (
     <div className="p-6 max-w-6xl mx-auto">
       {/* Page Header */}
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-dark mb-2">📈 Stock Market</h2>
-        <p className="text-gray">Browse and trade stocks and ETFs</p>
-      </div>
+<div className="mb-6">
+  <div className="flex justify-between items-center">
+    <div>
+      <h2 className="text-3xl font-bold text-dark mb-2">📈 Stock Market</h2>
+      <p className="text-gray">Browse and trade stocks and ETFs</p>
+    </div>
+    
+    {/* TEMPORARY TEST BUTTONS - Will remove after testing */}
+<div className="flex gap-2">
+
+  
+  {/* ADMIN: Price Update Button */}
+  {userData?.email === 'test10@test.com' && (
+        <button
+          onClick={async () => {
+            const allSymbols = [
+              // Stocks
+              'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 
+              'NVDA', 'META', 'NFLX', 'DIS', 'COST',
+              // ETFs
+              'SPY', 'QQQ', 'VOO', 'VTI', 'AGG'
+            ];
+            
+            const confirmUpdate = window.confirm(
+              `Update all 15 stock/ETF prices?\n\n` +
+              `⏱️ Takes ~3 minutes\n` +
+              `📊 Uses 15 of your 25 daily API calls\n` +
+              `💰 You have ${25 - 15} calls remaining after this\n\n` +
+              `Continue?`
+            );
+            
+            if (!confirmUpdate) return;
+            
+            showToast('Updating prices... This takes ~3 minutes', 'info');
+            const result = await refreshMarketPrices(allSymbols);
+            
+            if (result.success) {
+              showToast(
+                `✅ Updated ${result.updated.length}/15 stocks in ${Math.round(result.duration/60)}min ${result.duration%60}s`, 
+                'success'
+              );
+              loadMarketData();
+            } else {
+              showToast('Update failed. Check console for details.', 'error');
+            }
+          }}
+          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg"
+        >
+          🔄 Refresh Market Prices
+        </button>
+  )}
+</div>
+  </div>
+</div>
 
       {/* Tabs for Stocks/ETFs */}
       <div className="bg-white rounded-3xl shadow-lg mb-6 overflow-hidden">
