@@ -51,7 +51,7 @@ const futureNavItems = [
       <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-50">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
-            {/* Left: Hamburger + Logo */}
+            {/* Left: Hamburger + Logo + Practice Badge */}
             <div className="flex items-center gap-3">
               {/* Mobile Hamburger Menu */}
               <button
@@ -67,20 +67,35 @@ const futureNavItems = [
                 </svg>
               </button>
               
-              <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
+              {/* Logo + Practice Mode Badge */}
+              <div className="flex flex-col">
+                <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-xs">⚠️</span>
+                  <span className="text-[10px] sm:text-xs font-semibold text-warning">Practice Mode</span>
+                </div>
+              </div>
             </div>
             
             {/* Right Side */}
             <div className="flex items-center gap-2 sm:gap-4">
-              {/* Practice Mode Badge - Hidden on small mobile */}
-              <div className="bg-warning text-white px-2 sm:px-4 py-1 sm:py-2 rounded-full font-bold text-xs sm:text-sm animate-pulse hidden xs:block">
-                PRACTICE
-              </div>
               
-              {/* Confidence Score */}
-              <div className="bg-white border-2 border-primary rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2">
-                <div className="text-xs font-bold text-primary">
-                  {confidenceScore.toFixed(1)}/10
+              {/* Confidence Score with Progress Bar */}
+              <div className="bg-white border-2 border-primary rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2 min-w-[100px]">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm hidden sm:inline">💪</span>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="text-[10px] sm:text-xs font-semibold text-gray">Confidence</span>
+                      <span className="text-xs font-bold text-primary">{confidenceScore.toFixed(1)}/10</span>
+                    </div>
+                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-primary to-success transition-all duration-500"
+                        style={{ width: `${(confidenceScore / 10) * 100}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

@@ -219,11 +219,7 @@ function DashboardPage({ userData, confidenceScore }) {
               👋 Welcome back, {userData?.name?.split(' ')[0] || 'there'}!
             </h2>
             
-            {/* Practice Mode Badge - Compact */}
-            <div className="bg-warning bg-opacity-10 border-2 border-warning rounded-full px-4 py-1.5 flex items-center gap-2 whitespace-nowrap">
-              <span className="text-lg">⚠️</span>
-              <span className="text-sm font-semibold text-warning">Practice Mode</span>
-            </div>
+            
           </div>
 
           {/* Right: Confidence Score */}

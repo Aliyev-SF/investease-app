@@ -307,17 +307,21 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   key={symbol}
                   className="bg-light border-2 border-gray-200 rounded-3xl p-5 hover:shadow-lg transition-all"
                 >
-                  {/* Top Row: Icon + Symbol/Name + Change Badge */}
+                 {/* Top Row: Icon + Symbol/Name + Change Badge */}
                   <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      {isEtf ? (
-                        <ETFIcon size={32} className="text-purple-600" />
-                      ) : (
-                        <StockIcon size={32} className="text-primary" />
-                      )}
-                      <div>
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        {isEtf ? (
+                          <ETFIcon size={32} className="text-purple-600" />
+                        ) : (
+                          <StockIcon size={32} className="text-primary" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
                         <div className="font-bold text-lg text-dark">{symbol}</div>
-                        <div className="text-sm text-gray">{stock.name}</div>
+                        <div className="text-sm text-gray truncate" title={stock.name}>
+                          {stock.name}
+                        </div>
                       </div>
                     </div>
 
