@@ -200,6 +200,80 @@ export const updateMarketData = async (quotes) => {
 };
 
 /**
+ * Save price to history table for charting
+ * Call this alongside updateMarketData to track price over time
+ * 
+ * @param {Object} quotes - Object with symbol keys and quote data values
+ * @returns {Promise<Object>} Results of the history save operation
+ */
+export const saveToHistory = async (quotes) => {
+  // Import Supabase here to avoid circular dependencies
+  const { supabase } = await import('../utils/supabase.js');
+  
+  console.log('📈 Saving prices to history...');
+  
+  const saves = [];
+  const errors = [];
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+  
+  for (const [symbol, quote] of Object.entries(quotes)) {
+    try {
+      // Check if we already have an entry for today
+      const { data: existing, error: checkError } = await supabase
+        .from('market_data_history')
+        .select('id')
+        .eq('symbol', symbol)
+        .eq('date', today)
+        .maybeSingle();
+      
+      if (checkError) throw checkError;
+      
+      if (existing) {
+        // Update existing entry (in case we refresh multiple times per day)
+        const { error: updateError } = await supabase
+          .from('market_data_history')
+          .update({
+            close_price: quote.price,
+            volume: quote.volume,
+            // We don't have open/high/low from GLOBAL_QUOTE, so we'll use current price
+            // When we upgrade to better API endpoint later, we can add these
+          })
+          .eq('id', existing.id);
+        
+        if (updateError) throw updateError;
+        console.log(`📊 Updated history for ${symbol}`);
+      } else {
+        // Insert new entry
+        const { error: insertError } = await supabase
+          .from('market_data_history')
+          .insert({
+            symbol: symbol,
+            date: today,
+            open_price: quote.price,  // Using current price as placeholder
+            high_price: quote.price,  // Using current price as placeholder
+            low_price: quote.price,   // Using current price as placeholder
+            close_price: quote.price,
+            volume: quote.volume
+          });
+        
+        if (insertError) throw insertError;
+        console.log(`✅ Saved history for ${symbol}`);
+      }
+      
+      saves.push(symbol);
+      
+    } catch (error) {
+      console.error(`❌ Failed to save history for ${symbol}:`, error.message);
+      errors.push({ symbol, error: error.message });
+    }
+  }
+  
+  console.log(`📈 History saved: ${saves.length} stocks`);
+  
+  return { saved: saves, errors };
+};
+
+/**
  * Full update: Fetch prices from Alpha Vantage and update database
  * This is the main function you'll use to refresh prices
  * 
@@ -215,21 +289,27 @@ export const refreshMarketPrices = async (symbols) => {
   const { results: quotes, errors: fetchErrors } = await fetchMultipleStocks(symbols);
   
   // Step 2: Update database
-  const { updated, errors: updateErrors } = await updateMarketData(quotes);
+const { updated, errors: updateErrors } = await updateMarketData(quotes);
+
+// Step 3: Save to history
+const { saved, errors: historyErrors } = await saveToHistory(quotes);
   
   const endTime = Date.now();
   const duration = ((endTime - startTime) / 1000).toFixed(0);
   
-  console.log('🎉 Market price refresh complete!');
-  console.log(`⏱️ Total time: ${duration} seconds`);
-  console.log(`✅ Successfully updated: ${updated.length} stocks`);
-  console.log(`❌ Failed: ${fetchErrors.length + updateErrors.length} stocks`);
-  
-  return {
-    success: true,
-    duration,
-    updated,
-    fetchErrors,
-    updateErrors
-  };
+ console.log('🎉 Market price refresh complete!');
+console.log(`⏱️ Total time: ${duration} seconds`);
+console.log(`✅ Successfully updated: ${updated.length} stocks`);
+console.log(`📈 History saved: ${saved.length} stocks`);
+console.log(`❌ Failed: ${fetchErrors.length + updateErrors.length + historyErrors.length} stocks`);
+
+return {
+  success: true,
+  duration,
+  updated,
+  historySaved: saved,
+  fetchErrors,
+  updateErrors,
+  historyErrors
+};
 };

@@ -266,8 +266,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
       <h2 className="text-3xl font-bold text-dark mb-2">📈 Stock Market</h2>
       <p className="text-gray">Browse and trade stocks and ETFs</p>
     </div>
-    
-    {/* TEMPORARY TEST BUTTONS - Will remove after testing */}
 <div className="flex gap-2">
 
   
