@@ -1,6 +1,7 @@
 // supabase/functions/refresh-stock-prices/index.ts
 // Automatic daily stock price refresh using Alpha Vantage API
 // This Edge Function runs in Supabase's cloud and updates stock prices daily
+// VERSION: 2.0 - Added comprehensive debugging for API responses
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
@@ -24,8 +25,12 @@ async function fetchStockQuote(symbol: string, apiKey: string) {
   const url = `${ALPHA_VANTAGE_URL}?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
   
   console.log(`🔍 Fetching ${symbol}...`);
+  console.log(`📡 URL: ${url.replace(apiKey, 'API_KEY_HIDDEN')}`);
   
   const response = await fetch(url);
+  
+  console.log(`📊 Response status: ${response.status}`);
+  console.log(`📊 Response headers:`, JSON.stringify(Object.fromEntries(response.headers.entries()), null, 2));
   
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
@@ -33,17 +38,38 @@ async function fetchStockQuote(symbol: string, apiKey: string) {
   
   const data = await response.json();
   
+  // Debug: Log the entire response (truncated for large responses)
+  const dataStr = JSON.stringify(data, null, 2);
+  console.log(`📦 Full API response for ${symbol}:`, dataStr.length > 500 ? dataStr.substring(0, 500) + '...' : dataStr);
+  
   if (data['Error Message']) {
+    console.error(`❌ Alpha Vantage Error Message:`, data['Error Message']);
     throw new Error(`Alpha Vantage Error: ${data['Error Message']}`);
   }
   
   if (data['Note']) {
+    console.error(`⏰ Rate limit message:`, data['Note']);
     throw new Error('Rate limit reached');
+  }
+  
+  if (data['Information']) {
+    console.error(`ℹ️ Alpha Vantage Information:`, data['Information']);
+    throw new Error(`API Information: ${data['Information']}`);
   }
   
   const quote = data['Global Quote'];
   
+  console.log(`🔑 Global Quote exists:`, !!quote);
+  if (quote) {
+    console.log(`🔑 Global Quote keys:`, Object.keys(quote).join(', '));
+    console.log(`🔑 Global Quote data:`, JSON.stringify(quote, null, 2));
+  } else {
+    console.error(`❌ No Global Quote key found`);
+    console.error(`📋 Available top-level keys:`, Object.keys(data).join(', '));
+  }
+  
   if (!quote || Object.keys(quote).length === 0) {
+    console.error(`❌ No data in Global Quote for ${symbol}`);
     throw new Error(`No data returned for ${symbol}`);
   }
   
@@ -79,7 +105,15 @@ async function fetchAllStocks(apiKey: string) {
       }
     } catch (error: any) {
       console.error(`❌ Failed to fetch ${symbol}:`, error.message);
+      console.error(`❌ Full error:`, error);
       errors.push({ symbol, error: error.message });
+      
+      // Continue to next symbol even if this one fails
+      // But still wait to respect rate limits
+      if (i < SYMBOLS.length - 1) {
+        console.log('⏳ Waiting 12 seconds before next attempt...');
+        await delay(12000);
+      }
     }
   }
   
@@ -225,6 +259,7 @@ async function saveToHistory(supabase: any, quotes: Record<string, any>) {
 serve(async (req) => {
   try {
     console.log('🚀 Starting automatic price refresh...');
+    console.log(`🕐 Timestamp: ${new Date().toISOString()}`);
     const startTime = Date.now();
     
     // Debug: Check environment variables
@@ -235,6 +270,7 @@ serve(async (req) => {
     console.log('🔍 Environment check:');
     console.log('  - Alpha Vantage key exists:', !!alphaVantageKey);
     console.log('  - Alpha Vantage key length:', alphaVantageKey?.length || 0);
+    console.log('  - Alpha Vantage key first 4 chars:', alphaVantageKey?.substring(0, 4) || 'N/A');
     console.log('  - Supabase URL exists:', !!supabaseUrl);
     console.log('  - Supabase URL:', supabaseUrl);
     console.log('  - Supabase service key exists:', !!supabaseKey);
@@ -259,6 +295,7 @@ serve(async (req) => {
     console.log('📡 Starting Alpha Vantage fetch...');
     const { results: quotes, errors: fetchErrors } = await fetchAllStocks(alphaVantageKey);
     console.log(`📊 Fetched ${Object.keys(quotes).length} stocks successfully`);
+    console.log(`❌ Failed to fetch ${fetchErrors.length} stocks`);
     
     // Step 2: Update market_data table
     console.log('💾 Starting database update...');
@@ -307,6 +344,7 @@ serve(async (req) => {
     
   } catch (error: any) {
     console.error('💥 Fatal error:', error);
+    console.error('💥 Error message:', error.message);
     console.error('💥 Error stack:', error.stack);
     
     return new Response(

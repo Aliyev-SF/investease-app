@@ -412,51 +412,76 @@ function PortfolioPage({ userData, onConfidenceUpdate }) {
               return (
                 <div
                   key={holding.id}
-                  className="flex items-center justify-between p-5 bg-light rounded-2xl hover:bg-gray-100 transition-all"
+                  className="bg-light rounded-2xl hover:bg-gray-100 transition-all"
                 >
-                  {/* Left: Icon + Symbol/Name + Shares */}
-                  <div className="flex items-center gap-4 flex-1">
-                    {isEtf ? (
-                      <ETFIcon size={32} className="text-purple-600" />
-                    ) : (
-                      <StockIcon size={32} className="text-primary" />
-                    )}
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="font-bold text-lg text-dark">{holding.symbol}</div>
-                        {isEtf && (
-                          <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
-                            ETF
+                  {/* Stock Info Row - Desktop: horizontal, Mobile: horizontal */}
+                  <div className="flex items-center justify-between p-5 md:p-5 py-3 px-0">
+                    {/* Left: Icon + Symbol/Name + Shares */}
+                    <div className="flex items-center gap-3 md:gap-4 flex-1 px-3 md:px-0">
+                      {isEtf ? (
+                        <ETFIcon size={32} className="text-purple-600" />
+                      ) : (
+                        <StockIcon size={32} className="text-primary" />
+                      )}
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="font-bold text-base md:text-lg text-dark">{holding.symbol}</div>
+                          {isEtf && (
+                            <span className="bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded">
+                              ETF
+                            </span>
+                          )}
+                        </div>
+                        {/* Mobile: Just shares count, Desktop: shares + average */}
+                        <div className="text-xs md:text-sm text-gray">
+                          <span className="md:hidden">
+                            {parseFloat(holding.shares)} share{parseFloat(holding.shares) !== 1 ? 's' : ''}
                           </span>
-                        )}
+                          <span className="hidden md:inline">
+                            {parseFloat(holding.shares)} shares @ {formatCurrency(parseFloat(holding.average_price))} avg
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray">
-                        {parseFloat(holding.shares)} shares @ {formatCurrency(parseFloat(holding.average_price))} avg
+                    </div>
+
+                    {/* Middle: Current Value + Gain/Loss */}
+                    <div className="text-right px-3 md:px-0 md:mr-4">
+                      <div className="font-bold text-dark text-base md:text-lg">
+                        {formatCurrency(currentValue)}
                       </div>
+                      <div className={`text-xs md:text-sm font-semibold ${gainLoss >= 0 ? 'text-success' : 'text-danger'}`}>
+                        {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
+                      </div>
+                    </div>
+
+                    {/* Desktop: Action Buttons (shown on same row) */}
+                    <div className="hidden md:flex gap-2">
+                      <button
+                        onClick={() => handleBuyClick(holding.symbol)}
+                        className="px-4 py-2 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all"
+                      >
+                        Buy
+                      </button>
+                      <button
+                        onClick={() => handleSellClick(holding.symbol)}
+                        className="px-4 py-2 bg-danger text-white rounded-xl font-semibold hover:bg-red-600 transition-all"
+                      >
+                        Sell
+                      </button>
                     </div>
                   </div>
 
-                  {/* Middle: Current Value + Gain/Loss */}
-                  <div className="text-right mr-4">
-                    <div className="font-bold text-dark text-lg">
-                      {formatCurrency(currentValue)}
-                    </div>
-                    <div className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-success' : 'text-danger'}`}>
-                      {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss)} ({gainLoss >= 0 ? '+' : ''}{gainLossPercent}%)
-                    </div>
-                  </div>
-
-                  {/* Right: Action Buttons */}
-                  <div className="flex gap-2">
+                  {/* Mobile: Action Buttons (shown on separate row below) */}
+                  <div className="flex md:hidden gap-2 px-3 pb-3">
                     <button
                       onClick={() => handleBuyClick(holding.symbol)}
-                      className="px-4 py-2 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all"
+                      className="flex-1 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-all"
                     >
                       Buy More
                     </button>
                     <button
                       onClick={() => handleSellClick(holding.symbol)}
-                      className="px-4 py-2 bg-danger text-white rounded-xl font-semibold hover:bg-red-600 transition-all"
+                      className="flex-1 px-4 py-2 bg-danger text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all"
                     >
                       Sell
                     </button>

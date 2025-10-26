@@ -182,7 +182,7 @@ function TradeModal({
                     : 'bg-gray-100 text-gray hover:bg-gray-200'
                 }`}
               >
-                {isBuyMode ? '50' : 'All'}
+                {isBuyMode ? 'Max' : 'All'}
               </button>
             </div>
 

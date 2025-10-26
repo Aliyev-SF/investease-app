@@ -357,6 +357,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   className="bg-light border-2 border-gray-200 rounded-3xl p-5 hover:shadow-lg transition-all"
                 >
                  {/* Top Row: Icon + Symbol/Name + Change Badge */}
+                  {/* Top Row: Icon + Symbol/Name + Ownership Badge + Change Badge */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0">
@@ -374,10 +375,29 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                       </div>
                     </div>
 
-                    <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                      isPositive ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'
-                    }`}>
-                      {isPositive ? '+' : ''}{changePercent}%
+                    {/* Badges: Ownership (if applicable) + Percentage Change */}
+                    <div className="flex gap-2 flex-shrink-0">
+                      {/* Ownership Badge with Tooltip */}
+                      {hasShares && (
+                        <div 
+                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-primary bg-opacity-10 text-primary cursor-help relative group"
+                          title={`You own ${userShares} share${userShares !== 1 ? 's' : ''} of this ${isEtf ? 'ETF' : 'stock'}`}
+                        >
+                          {userShares} share{userShares !== 1 ? 's' : ''}
+                          {/* Tooltip */}
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                            You own {userShares} share{userShares !== 1 ? 's' : ''} of this {isEtf ? 'ETF' : 'stock'}
+                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {/* Percentage Change Badge */}
+                      <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
+                        isPositive ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'
+                      }`}>
+                        {isPositive ? '+' : ''}{changePercent}%
+                      </div>
                     </div>
                   </div>
 
@@ -390,15 +410,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                       {isPositive ? '+' : ''}${Math.abs(stock.change).toFixed(2)} today
                     </div>
                   </div>
-
-                  {/* Holdings Badge */}
-                  {hasShares && (
-                    <div className="mb-4 px-3 py-2 bg-primary bg-opacity-10 rounded-lg">
-                      <div className="text-xs text-primary font-semibold">
-                        You own {userShares} share{userShares !== 1 ? 's' : ''}
-                      </div>
-                    </div>
-                  )}
 
                   {/* P/E Ratio or ETF Badge */}
                   {!isEtf && stock.peRatio && (
