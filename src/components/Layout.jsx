@@ -1,7 +1,12 @@
+// src/components/Layout.jsx
+// Main layout component with header, sidebar navigation, and content area
+// ✨ FINAL VERSION: Practice Mode badge only in header (no confidence score)
+
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import UserDropdown from './UserDropdown';
 
-function Layout({ children, userData, confidenceScore, onLogout }) {
+function Layout({ children, userData, onLogout }) {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -51,7 +56,7 @@ const futureNavItems = [
       <header className="bg-white border-b-2 border-gray-200 sticky top-0 z-50">
         <div className="px-4 sm:px-6 py-4">
           <div className="flex justify-between items-center">
-            {/* Left: Hamburger + Logo + Practice Badge */}
+            {/* Left: Hamburger + Logo */}
             <div className="flex items-center gap-3">
               {/* Mobile Hamburger Menu */}
               <button
@@ -67,54 +72,15 @@ const futureNavItems = [
                 </svg>
               </button>
               
-              {/* Logo + Practice Mode Badge */}
-              <div className="flex flex-col">
-                <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
-                <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xs">⚠️</span>
-                  <span className="text-[10px] sm:text-xs font-semibold text-warning">Practice Mode</span>
-                </div>
-              </div>
+              {/* Logo */}
+              <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
             </div>
             
             {/* Right Side */}
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               
-              {/* Confidence Score with Progress Bar */}
-              <div className="bg-white border-2 border-primary rounded-lg sm:rounded-xl px-2 sm:px-4 py-1 sm:py-2 min-w-[100px]">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm hidden sm:inline">💪</span>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-center mb-1">
-                      <span className="text-[10px] sm:text-xs font-semibold text-gray">Confidence</span>
-                      <span className="text-xs font-bold text-primary">{confidenceScore.toFixed(1)}/10</span>
-                    </div>
-                    <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-gradient-to-r from-primary to-success transition-all duration-500"
-                        style={{ width: `${(confidenceScore / 10) * 100}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* User Section */}
-              <div className="flex items-center gap-2">
-                {/* User name - hidden on mobile */}
-                <div className="text-right hidden md:block">
-                  <div className="text-xs text-gray">Welcome</div>
-                  <div className="font-semibold text-dark text-sm">{userData.name}</div>
-                </div>
-                
-                {/* Logout Button */}
-                <button
-                  onClick={onLogout}
-                  className="bg-gray-200 hover:bg-gray-300 text-dark px-2 sm:px-4 py-1 sm:py-2 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm transition-all"
-                >
-                  Logout
-                </button>
-              </div>
+              {/* ✨ NEW: User Dropdown with Practice Mode */}
+              <UserDropdown userName={userData.name} onLogout={onLogout} />
             </div>
           </div>
         </div>
