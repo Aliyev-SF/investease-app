@@ -6,6 +6,14 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import UserDropdown from './UserDropdown';
 import { LogoStacked } from './brand/InvesteaseLogo';
+import { HomeIcon } from './brand/icons/HomeIcon';
+import { PortfolioIcon } from './brand/icons/PortfolioIcon';
+import { MarketIcon } from './brand/icons/MarketIcon';
+import { LearnIcon } from './brand/icons/LearnIcon';
+import { HistoryIcon } from './brand/icons/HistoryIcon';
+import { ProgressIcon } from './brand/icons/ProgressIcon';
+import { SettingsIcon } from './brand/icons/SettingsIcon';
+
 
 function Layout({ children, userData, onLogout }) {
   const location = useLocation();
@@ -33,12 +41,12 @@ function Layout({ children, userData, onLogout }) {
   };
 
   const navItems = [
-  { path: '/dashboard', icon: '📊', label: 'Dashboard' },
-  { path: '/portfolio', icon: '💼', label: 'Portfolio' },
-  { path: '/market', icon: '📈', label: 'Market' },
-  { path: '/learn', icon: '📚', label: 'Learn' },
-  { path: '/history', icon: '📜', label: 'History' },
-  { path: '/progress', icon: '🏆', label: 'Progress' },
+  { path: '/dashboard', icon: HomeIcon, label: 'Dashboard', isComponent: true },
+  { path: '/portfolio', icon: PortfolioIcon, label: 'Portfolio', isComponent: true },
+  { path: '/market', icon: MarketIcon, label: 'Market', isComponent: true },
+  { path: '/learn', icon: LearnIcon, label: 'Learn', isComponent: true },
+  { path: '/history', icon: HistoryIcon, label: 'History', isComponent: true },
+  { path: '/progress', icon: ProgressIcon, label: 'Progress', isComponent: true },
 ];
 
 const futureNavItems = [
@@ -46,8 +54,8 @@ const futureNavItems = [
 ];
 
   const settingsItems = [
-    { path: '/settings', icon: '⚙️', label: 'Settings', disabled: true },
-  ];
+  { path: '/settings', icon: SettingsIcon, label: 'Settings', disabled: true, isComponent: true },
+];
 
   const isActive = (path) => location.pathname === path;
 
@@ -128,21 +136,32 @@ const futureNavItems = [
 
           <nav className="py-4">
             {/* Main Navigation */}
-            {navItems.map((item) => (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-6 py-4 transition-all border-l-4 ${
-                  isActive(item.path)
-                    ? 'bg-primary bg-opacity-10 text-primary border-primary'
-                    : 'border-transparent text-gray-400 hover:bg-white hover:bg-opacity-5 hover:text-white'
-                }`}
-                title={sidebarCollapsed ? item.label : ''}
-              >
-                <span className="text-2xl">{item.icon}</span>
-                {!sidebarCollapsed && <span className="font-medium text-lg">{item.label}</span>}
-              </Link>
-            ))}
+            {navItems.map((item) => {
+              const IconComponent = item.icon;
+              const active = isActive(item.path);
+              
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center gap-3 px-6 py-4 transition-all border-l-4 ${
+                    active
+                      ? 'bg-primary bg-opacity-10 text-primary border-primary'
+                      : 'border-transparent text-gray-400 hover:bg-white hover:bg-opacity-5 hover:text-white'
+                  }`}
+                  title={sidebarCollapsed ? item.label : ''}
+                >
+                  {/* Render icon - either component or emoji */}
+                  {item.isComponent ? (
+                    <IconComponent size={28} isActive={active} />
+                  ) : (
+                    <span className="text-2xl">{item.icon}</span>
+                  )}
+                  
+                  {!sidebarCollapsed && <span className="font-medium text-lg">{item.label}</span>}
+                </Link>
+              );
+            })}
 
             {/* Divider */}
             <div className="my-4 mx-6 border-t border-gray-700"></div>
@@ -168,21 +187,31 @@ const futureNavItems = [
             <div className="my-4 mx-6 border-t border-gray-700"></div>
 
             {/* Settings */}
-            {settingsItems.map((item) => (
-              <div
-                key={item.path}
-                className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
-                title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
-              >
-                <span className="text-2xl">{item.icon}</span>
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="font-medium text-lg">{item.label}</span>
-                    <span className="text-xs ml-auto">Soon</span>
-                  </>
-                )}
-              </div>
-            ))}
+            {settingsItems.map((item) => {
+              const IconComponent = item.icon;
+              
+              return (
+                <div
+                  key={item.path}
+                  className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
+                  title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
+                >
+                  {/* Render icon - either component or emoji */}
+                  {item.isComponent ? (
+                    <IconComponent size={28} isActive={false} />
+                  ) : (
+                    <span className="text-2xl">{item.icon}</span>
+                  )}
+                  
+                  {!sidebarCollapsed && (
+                    <>
+                      <span className="font-medium text-lg">{item.label}</span>
+                      <span className="text-xs ml-auto">Soon</span>
+                    </>
+                  )}
+                </div>
+              );
+            })}
           </nav>
         </aside>
 

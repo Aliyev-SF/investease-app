@@ -6,8 +6,8 @@ import TradeModal from '../components/TradeModal';
 import { useToast } from '../components/ToastContainer';
 import { trackPageView } from '../utils/analytics';
 import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
-import StockIcon from '../components/icons/StockIcon';
-import ETFIcon from '../components/icons/ETFIcon';
+import StockIcon from '../components/brand/icons/StockIcon';
+import ETFIcon from '../components/brand/icons/ETFIcon';
 import { refreshMarketPrices } from '../services/alphaVantageService';
 
 function MarketPage({ userData, onConfidenceUpdate }) {

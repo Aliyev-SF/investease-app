@@ -14,8 +14,8 @@ import {
   trackSuggestionClicked 
 } from '../utils/suggestionHelper';
 import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
-import StockIcon from '../components/icons/StockIcon';
-import ETFIcon from '../components/icons/ETFIcon';
+import StockIcon from '../components/brand/icons/StockIcon';
+import ETFIcon from '../components/brand/icons/ETFIcon';
 
 function PortfolioPage({ userData, onConfidenceUpdate }) {
   const navigate = useNavigate();
