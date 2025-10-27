@@ -1,5 +1,6 @@
 // src/components/LessonViewer.jsx
 import { useState, useEffect } from 'react';
+import Button from '../components/Button';
 import { supabase } from '../utils/supabase';
 import { getLessonBySlug, getLessonContent, getNextLesson, getPreviousLesson } from '../utils/lessonLoader';
 import { trackLessonStart, trackLessonEnd } from '../utils/analytics';
@@ -195,39 +196,34 @@ function LessonViewer({ lessonSlug, userData, onClose, onComplete }) {
             </div>
           ) : (
             <div className="text-center mb-6">
-              <button
+              <Button
+                variant="primary"
+                size="lg"
                 onClick={handleComplete}
-                className="px-8 py-4 bg-primary text-white rounded-xl font-bold text-lg hover:bg-primary-dark transition-all hover:shadow-lg"
               >
                 Mark as Complete ✓
-              </button>
+              </Button>
             </div>
           )}
 
           {/* Navigation */}
           <div className="flex gap-4 justify-between">
-            <button
+            <Button
+              variant="secondary"
               onClick={handlePrevious}
               disabled={!prevLesson}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
-                prevLesson
-                  ? 'bg-gray-200 text-dark hover:bg-gray-300'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+              className="flex-1"
             >
               {prevLesson ? `← Previous: ${prevLesson.title}` : '← No Previous Lesson'}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={handleNext}
               disabled={!nextLesson}
-              className={`flex-1 py-3 px-6 rounded-xl font-semibold transition-all ${
-                nextLesson
-                  ? 'bg-primary text-white hover:bg-primary-dark hover:shadow-lg'
-                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+              className="flex-1"
             >
               {nextLesson ? `Next: ${nextLesson.title} →` : 'Course Complete! →'}
-            </button>
+            </Button>
           </div>
         </div>
       </div>

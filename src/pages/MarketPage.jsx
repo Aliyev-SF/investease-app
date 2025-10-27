@@ -1,5 +1,6 @@
 // src/pages/MarketPage.jsx (UPDATED - Uses market_data and holdings tables)
 import { useState, useEffect } from 'react';
+import Button from '../components/Button';
 import { supabase } from '../utils/supabase';
 import TradeModal from '../components/TradeModal';
 import { useToast } from '../components/ToastContainer';
@@ -327,6 +328,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
             <StockIcon size={20} className={activeTab === 'stocks' ? 'text-primary' : 'text-gray'} />
             <span>Stocks</span>
           </button>
+          
 
           <button
             onClick={() => setActiveTab('etfs')}
@@ -439,26 +441,32 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   <div className="flex gap-2">
                     {hasShares ? (
                       <>
-                        <button
-                          onClick={() => handleBuyClick(symbol)}
-                          className="flex-1 px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all"
-                        >
-                          Buy More
-                        </button>
-                        <button
-                          onClick={() => handleSellClick(symbol)}
-                          className="flex-1 px-4 py-3 bg-danger text-white rounded-xl font-semibold hover:bg-red-600 transition-all"
-                        >
-                          Sell
-                        </button>
+                        <Button 
+                        variant="primary" 
+                        size="sm" 
+                        fullWidth 
+                        onClick={() => handleBuyClick(symbol)}
+                      >
+                        Buy More
+                      </Button>
+                        <Button 
+                        variant="danger" 
+                        size="sm" 
+                        fullWidth 
+                        onClick={() => handleSellClick(symbol)}
+                      >
+                        Sell
+                      </Button>
                       </>
                     ) : (
-                      <button
+                      <Button 
+                        variant="primary" 
+                        size="sm" 
+                        fullWidth 
                         onClick={() => handleBuyClick(symbol)}
-                        className="w-full px-4 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all"
                       >
                         Buy
-                      </button>
+                      </Button>
                     )}
                   </div>
                 </div>

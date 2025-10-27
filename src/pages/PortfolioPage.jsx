@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { useNavigate } from 'react-router-dom';
+import Button from '../components/Button';
 import { useToast } from '../components/ToastContainer';
 import TradeModal from '../components/TradeModal';
 import SuggestionCard from '../components/SuggestionCard';
@@ -456,35 +457,33 @@ function PortfolioPage({ userData, onConfidenceUpdate }) {
 
                     {/* Desktop: Action Buttons (shown on same row) */}
                     <div className="hidden md:flex gap-2">
-                      <button
-                        onClick={() => handleBuyClick(holding.symbol)}
-                        className="px-4 py-2 bg-primary text-white rounded-xl font-semibold hover:bg-primary-dark transition-all"
-                      >
+                      <Button variant="primary" size="sm" onClick={() => handleBuyClick(holding.symbol)}>
                         Buy
-                      </button>
-                      <button
-                        onClick={() => handleSellClick(holding.symbol)}
-                        className="px-4 py-2 bg-danger text-white rounded-xl font-semibold hover:bg-red-600 transition-all"
-                      >
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={() => handleSellClick(holding.symbol)}>
                         Sell
-                      </button>
+                      </Button>
                     </div>
                   </div>
 
                   {/* Mobile: Action Buttons (shown on separate row below) */}
                   <div className="flex md:hidden gap-2 px-3 pb-3">
-                    <button
+                    <Button 
+                      variant="primary" 
+                      size="sm" 
+                      fullWidth 
                       onClick={() => handleBuyClick(holding.symbol)}
-                      className="flex-1 px-4 py-2 bg-primary text-white rounded-xl text-sm font-semibold hover:bg-primary-dark transition-all"
                     >
                       Buy More
-                    </button>
-                    <button
+                    </Button>
+                    <Button 
+                      variant="danger" 
+                      size="sm" 
+                      fullWidth 
                       onClick={() => handleSellClick(holding.symbol)}
-                      className="flex-1 px-4 py-2 bg-danger text-white rounded-xl text-sm font-semibold hover:bg-red-600 transition-all"
                     >
                       Sell
-                    </button>
+                    </Button>
                   </div>
                 </div>
               );
@@ -495,12 +494,9 @@ function PortfolioPage({ userData, onConfidenceUpdate }) {
             <div className="text-6xl mb-4">📊</div>
             <div className="text-xl font-bold text-dark mb-2">No Holdings Yet</div>
             <div className="text-gray mb-4">Start by buying your first stock or ETF!</div>
-            <button
-              onClick={() => navigate('/market')}
-              className="px-6 py-3 bg-primary text-white rounded-xl font-bold hover:bg-primary-dark transition-all"
-            >
+            <Button variant="primary" onClick={() => navigate('/market')}>
               Browse Market
-            </button>
+            </Button>
           </div>
         )}
       </div>

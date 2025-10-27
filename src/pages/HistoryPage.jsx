@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Button from '../components/Button';
 import { supabase } from '../utils/supabase';
 import { trackPageView } from '../utils/analytics';
 
@@ -105,36 +106,27 @@ function HistoryPage({ userData }) {
 
       {/* Filter Buttons */}
       <div className="bg-white rounded-2xl p-2 mb-6 inline-flex gap-2 shadow-lg">
-        <button
+        <Button
+          variant={filter === 'all' ? 'primary' : 'ghost'}
+          size="sm"
           onClick={() => setFilter('all')}
-          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            filter === 'all'
-              ? 'bg-primary text-white'
-              : 'text-gray hover:bg-gray-100'
-          }`}
         >
           All ({transactions.length})
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={filter === 'buy' ? 'primary' : 'ghost'}
+          size="sm"
           onClick={() => setFilter('buy')}
-          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            filter === 'buy'
-              ? 'bg-primary text-white'
-              : 'text-gray hover:bg-gray-100'
-          }`}
         >
           Buys ({buyCount})
-        </button>
-        <button
+        </Button>
+        <Button
+          variant={filter === 'sell' ? 'danger' : 'ghost'}
+          size="sm"
           onClick={() => setFilter('sell')}
-          className={`px-6 py-2 rounded-xl font-semibold transition-all ${
-            filter === 'sell'
-              ? 'bg-danger text-white'
-              : 'text-gray hover:bg-gray-100'
-          }`}
         >
           Sells ({sellCount})
-        </button>
+        </Button>
       </div>
 
       {/* Transactions List */}

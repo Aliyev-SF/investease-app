@@ -1,5 +1,6 @@
 // src/pages/AnalyticsDashboardPage.jsx
 import { useState, useEffect } from 'react';
+import Button from '../components/Button';
 import { supabase } from '../utils/supabase';
 
 // Admin email whitelist
@@ -196,7 +197,7 @@ function AnalyticsDashboardPage({ userData }) {
   return (
     <div className="p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="bg-gradient-to-r from-primary to-primary-dark text-white rounded-3xl p-8 mb-8 shadow-lg">
+      <div className="bg-gradient-to-r from-primary-dark to-primary-dark text-white rounded-3xl p-8 mb-8 shadow-lg">
         <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
           <span>📊</span>
           <span>InvestEase Analytics</span>
@@ -205,37 +206,37 @@ function AnalyticsDashboardPage({ userData }) {
         
         {/* Date Filter */}
         <div className="flex gap-3">
-          <button
-            onClick={() => setDateRange(7)}
-            className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-              dateRange === 7
-                ? 'bg-white text-primary'
-                : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
-            }`}
-          >
-            Last 7 days
-          </button>
-          <button
-            onClick={() => setDateRange(30)}
-            className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-              dateRange === 30
-                ? 'bg-white text-primary'
-                : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
-            }`}
-          >
-            Last 30 days
-          </button>
-          <button
-            onClick={() => setDateRange(90)}
-            className={`px-4 py-2 rounded-xl font-semibold transition-all ${
-              dateRange === 90
-                ? 'bg-white text-primary'
-                : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
-            }`}
-          >
-            Last 90 days
-          </button>
-        </div>
+  <button
+    onClick={() => setDateRange(7)}
+    className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+      dateRange === 7
+        ? 'bg-white text-primary'
+        : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
+    }`}
+  >
+    Last 7 days
+  </button>
+  <button
+    onClick={() => setDateRange(30)}
+    className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+      dateRange === 30
+        ? 'bg-white text-primary'
+        : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
+    }`}
+  >
+    Last 30 days
+  </button>
+  <button
+    onClick={() => setDateRange(90)}
+    className={`px-4 py-2 rounded-xl font-semibold transition-all ${
+      dateRange === 90
+        ? 'bg-white text-primary'
+        : 'bg-white bg-opacity-25 text-white hover:bg-opacity-35'
+    }`}
+  >
+    Last 90 days
+  </button>
+</div>
       </div>
 
       {/* Overview Cards */}

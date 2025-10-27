@@ -5,6 +5,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import UserDropdown from './UserDropdown';
+import { LogoStacked } from './brand/InvesteaseLogo';
 
 function Layout({ children, userData, onLogout }) {
   const location = useLocation();
@@ -72,8 +73,13 @@ const futureNavItems = [
                 </svg>
               </button>
               
-              {/* Logo */}
-              <h1 className="text-primary text-2xl sm:text-3xl font-bold">InvestEase</h1>
+              {/* Logo - Stacked (Responsive) */}
+              <div className="flex items-center">
+                <LogoStacked 
+                  width={window.innerWidth < 640 ? 100 : 120} 
+                  height={window.innerWidth < 640 ? 70 : 85} 
+                />
+              </div>
             </div>
             
             {/* Right Side */}

@@ -1,5 +1,6 @@
 // src/components/SuggestionCard.jsx
 import { useState } from 'react';
+import Button from './Button';
 
 function SuggestionCard({ 
   icon = '💡',
@@ -76,18 +77,20 @@ function SuggestionCard({
 
       {/* Action Buttons */}
       <div className="flex gap-3">
-        <button
+        <Button
+          variant="primary"
           onClick={handleLearnClick}
-          className="flex-1 px-6 py-3 bg-white text-primary font-bold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all"
+          className="flex-1 bg-white text-primary hover:shadow-lg hover:-translate-y-0.5"
         >
           Learn Now →
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="ghost"
           onClick={handleDismiss}
-          className="px-6 py-3 bg-white bg-opacity-20 text-white font-semibold rounded-xl border border-white border-opacity-30 hover:bg-opacity-30 transition-all"
+          className="bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-opacity-30"
         >
           Maybe Later
-        </button>
+        </Button>
       </div>
 
       {/* Fade-in animation */}

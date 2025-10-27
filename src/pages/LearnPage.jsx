@@ -1,6 +1,7 @@
 // src/pages/LearnPage.jsx (Updated to handle ?lesson=slug query param)
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import Button from '../components/Button';
 import { supabase } from '../utils/supabase';
 import { getAllLessons, getLessonsByCategory, categories } from '../utils/lessonLoader';
 import LessonViewer from '../components/LessonViewer';
@@ -234,12 +235,13 @@ function LearnPage({ userData }) {
           <p className="text-lg opacity-90">
             You've completed all lessons! You're well on your way to becoming a confident investor.
           </p>
-          <button
+          <Button
+            variant="primary"
             onClick={() => handleLessonClick(allLessons[0].slug)}
-            className="mt-6 px-6 py-3 bg-white text-success rounded-xl font-bold hover:bg-gray-100 transition-all"
+            className="mt-6 bg-white text-success hover:bg-gray-100"
           >
             Review Lessons
-          </button>
+          </Button>
         </div>
       )}
     </div>
