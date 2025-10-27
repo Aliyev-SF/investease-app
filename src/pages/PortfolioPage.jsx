@@ -358,7 +358,7 @@ function PortfolioPage({ userData, onConfidenceUpdate }) {
     <div className="p-6 max-w-7xl mx-auto">
       {/* Page Header */}
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-dark mb-2">📊 Portfolio</h2>
+        <h2 className="text-3xl font-bold text-dark mb-2">Portfolio</h2>
         <p className="text-gray">View and manage your investments</p>
       </div>
 

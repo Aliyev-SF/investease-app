@@ -9,6 +9,8 @@ import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
 import StockIcon from '../components/brand/icons/StockIcon';
 import ETFIcon from '../components/brand/icons/ETFIcon';
 import { refreshMarketPrices } from '../services/alphaVantageService';
+import StockTable from '../components/StockTable';
+import StockCardsMobile from '../components/StockCardsMobile';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
   const [activeTab, setActiveTab] = useState('stocks');
@@ -264,14 +266,14 @@ function MarketPage({ userData, onConfidenceUpdate }) {
 <div className="mb-6">
   <div className="flex justify-between items-center">
     <div>
-      <h2 className="text-3xl font-bold text-dark mb-2">📈 Stock Market</h2>
+      <h2 className="text-3xl font-bold text-dark mb-2">Stock Market</h2>
       <p className="text-gray">Browse and trade stocks and ETFs</p>
     </div>
 <div className="flex gap-2">
 
   
   {/* ADMIN: Price Update Button */}
-  {userData?.email === 'test10@test.com' && (
+  {userData?.email === 'test10@test.co' && (
         <button
           onClick={async () => {
             const allSymbols = [
@@ -343,136 +345,24 @@ function MarketPage({ userData, onConfidenceUpdate }) {
           </button>
         </div>
 
-        {/* Stock Grid */}
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedAssets.map(([symbol, stock]) => {
-              const userShares = getUserShares(symbol);
-              const hasShares = userShares > 0;
-              const changePercent = ((stock.change / stock.price) * 100).toFixed(2);
-              const isPositive = stock.change >= 0;
-              const isEtf = stock.type === 'etf';
-
-              return (
-                <div
-                  key={symbol}
-                  className="bg-light border-2 border-gray-200 rounded-3xl p-5 hover:shadow-lg transition-all"
-                >
-                 {/* Top Row: Icon + Symbol/Name + Change Badge */}
-                  {/* Top Row: Icon + Symbol/Name + Ownership Badge + Change Badge */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className="flex-shrink-0">
-                        {isEtf ? (
-                          <ETFIcon size={32} className="text-purple-600" />
-                        ) : (
-                          <StockIcon size={32} className="text-primary" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-bold text-lg text-dark">{symbol}</div>
-                        <div className="text-sm text-gray truncate" title={stock.name}>
-                          {stock.name}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Badges: Ownership (if applicable) + Percentage Change */}
-                    <div className="flex gap-2 flex-shrink-0">
-                      {/* Ownership Badge with Tooltip */}
-                      {hasShares && (
-                        <div 
-                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-primary bg-opacity-10 text-primary cursor-help relative group"
-                          title={`You own ${userShares} share${userShares !== 1 ? 's' : ''} of this ${isEtf ? 'ETF' : 'stock'}`}
-                        >
-                          {userShares} share{userShares !== 1 ? 's' : ''}
-                          {/* Tooltip */}
-                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                            You own {userShares} share{userShares !== 1 ? 's' : ''} of this {isEtf ? 'ETF' : 'stock'}
-                            <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {/* Percentage Change Badge */}
-                      <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                        isPositive ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'
-                      }`}>
-                        {isPositive ? '+' : ''}{changePercent}%
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Price Row */}
-                  <div className="mb-4">
-                    <div className="text-3xl font-bold text-dark">
-                      ${stock.price.toFixed(2)}
-                    </div>
-                    <div className={`text-sm font-semibold ${isPositive ? 'text-success' : 'text-danger'}`}>
-                      {isPositive ? '+' : ''}${Math.abs(stock.change).toFixed(2)} today
-                    </div>
-                  </div>
-
-                  {/* P/E Ratio or ETF Badge */}
-                  {!isEtf && stock.peRatio && (
-                    <div className="mb-4 flex items-center justify-between px-3 py-2 bg-gray-100 rounded-lg">
-                      <div className="text-xs text-gray font-semibold relative group">
-                        P/E Ratio
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                          Price-to-Earnings ratio measures stock value
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
-                        </div>
-                      </div>
-                      <div className="text-lg font-semibold text-dark">
-                        {stock.peRatio}
-                      </div>
-                    </div>
-                  )}
-
-                  {isEtf && (
-                    <div className="mb-4">
-                      <span className="bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        ETF
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-2">
-                    {hasShares ? (
-                      <>
-                        <Button 
-                        variant="primary" 
-                        size="sm" 
-                        fullWidth 
-                        onClick={() => handleBuyClick(symbol)}
-                      >
-                        Buy More
-                      </Button>
-                        <Button 
-                        variant="danger" 
-                        size="sm" 
-                        fullWidth 
-                        onClick={() => handleSellClick(symbol)}
-                      >
-                        Sell
-                      </Button>
-                      </>
-                    ) : (
-                      <Button 
-                        variant="primary" 
-                        size="sm" 
-                        fullWidth 
-                        onClick={() => handleBuyClick(symbol)}
-                      >
-                        Buy
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {/* Desktop: Table View (hidden on mobile) */}
+        <div className="hidden lg:block p-6">
+          <StockTable 
+            stocks={displayedAssets}
+            getUserShares={getUserShares}
+            onBuyClick={handleBuyClick}
+            onSellClick={handleSellClick}
+            activeTab={activeTab}  // ← ADD THIS
+          />
+        </div>
+        {/* Mobile: Compact Cards (hidden on desktop) */}
+        <div className="block lg:hidden p-6">
+          <StockCardsMobile 
+            stocks={displayedAssets}
+            getUserShares={getUserShares}
+            onBuyClick={handleBuyClick}
+            onSellClick={handleSellClick}
+          />
         </div>
       </div>
 

@@ -105,7 +105,7 @@ function LearnPage({ userData }) {
     <div className="p-6 max-w-6xl mx-auto">
       {/* Page Header */}
       <div className="mb-6">
-        <h2 className="text-3xl font-bold text-dark mb-2">📚 Learn to Invest</h2>
+        <h2 className="text-3xl font-bold text-dark mb-2">Learn to Invest</h2>
         <p className="text-gray">Master investing fundamentals with our beginner-friendly lessons</p>
       </div>
 

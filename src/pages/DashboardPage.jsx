@@ -216,7 +216,7 @@ function DashboardPage({ userData, confidenceScore }) {
           {/* Left: Welcome Message + Practice Badge */}
           <div className="flex flex-wrap items-center gap-3">
             <h2 className="text-3xl font-bold text-dark">
-              👋 Welcome back, {userData?.name?.split(' ')[0] || 'there'}!
+              Welcome back, {userData?.name?.split(' ')[0] || 'there'}!
             </h2>
             
             
