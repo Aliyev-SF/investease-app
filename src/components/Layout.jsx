@@ -13,6 +13,7 @@ import { LearnIcon } from './brand/icons/LearnIcon';
 import { HistoryIcon } from './brand/icons/HistoryIcon';
 import { ProgressIcon } from './brand/icons/ProgressIcon';
 import { SettingsIcon } from './brand/icons/SettingsIcon';
+import BottomNav from './BottomNav';
 
 
 function Layout({ children, userData, onLogout }) {
@@ -41,21 +42,11 @@ function Layout({ children, userData, onLogout }) {
   };
 
   const navItems = [
-  { path: '/dashboard', icon: HomeIcon, label: 'Dashboard', isComponent: true },
-  { path: '/portfolio', icon: PortfolioIcon, label: 'Portfolio', isComponent: true },
-  { path: '/market', icon: MarketIcon, label: 'Market', isComponent: true },
-  { path: '/learn', icon: LearnIcon, label: 'Learn', isComponent: true },
-  { path: '/history', icon: HistoryIcon, label: 'History', isComponent: true },
-  { path: '/progress', icon: ProgressIcon, label: 'Progress', isComponent: true },
-];
-
-const futureNavItems = [
-  // Removed Learn - it's now active!
-];
-
-  const settingsItems = [
-  { path: '/settings', icon: SettingsIcon, label: 'Settings', disabled: true, isComponent: true },
-];
+    { path: '/dashboard', icon: HomeIcon, label: 'Dashboard', isComponent: true },
+    { path: '/market', icon: MarketIcon, label: 'Market', isComponent: true },
+    { path: '/learn', icon: LearnIcon, label: 'Learn', isComponent: true },
+    { path: '/progress', icon: ProgressIcon, label: 'Progress', isComponent: true },
+  ];
 
   const isActive = (path) => location.pathname === path;
 
@@ -67,19 +58,6 @@ const futureNavItems = [
           <div className="flex justify-between items-center">
             {/* Left: Hamburger + Logo */}
             <div className="flex items-center gap-3">
-              {/* Mobile Hamburger Menu */}
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100 transition-all"
-              >
-                <svg className="w-6 h-6 text-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  {mobileMenuOpen ? (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  ) : (
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-                  )}
-                </svg>
-              </button>
               
               {/* Logo - Stacked (Responsive) */}
               <div className="flex items-center">
@@ -162,63 +140,16 @@ const futureNavItems = [
                 </Link>
               );
             })}
-
-            {/* Divider */}
-            <div className="my-4 mx-6 border-t border-gray-700"></div>
-
-            {/* Future Features */}
-            {futureNavItems.map((item) => (
-              <div
-                key={item.path}
-                className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
-                title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
-              >
-                <span className="text-2xl">{item.icon}</span>
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="font-medium text-lg">{item.label}</span>
-                    <span className="text-xs ml-auto">Soon</span>
-                  </>
-                )}
-              </div>
-            ))}
-
-            {/* Divider */}
-            <div className="my-4 mx-6 border-t border-gray-700"></div>
-
-            {/* Settings */}
-            {settingsItems.map((item) => {
-              const IconComponent = item.icon;
-              
-              return (
-                <div
-                  key={item.path}
-                  className="flex items-center gap-3 px-6 py-4 text-gray-600 cursor-not-allowed opacity-50"
-                  title={sidebarCollapsed ? `${item.label} (Coming Soon)` : 'Coming Soon'}
-                >
-                  {/* Render icon - either component or emoji */}
-                  {item.isComponent ? (
-                    <IconComponent size={28} isActive={false} />
-                  ) : (
-                    <span className="text-2xl">{item.icon}</span>
-                  )}
-                  
-                  {!sidebarCollapsed && (
-                    <>
-                      <span className="font-medium text-lg">{item.label}</span>
-                      <span className="text-xs ml-auto">Soon</span>
-                    </>
-                  )}
-                </div>
-              );
-            })}
           </nav>
         </aside>
 
         {/* Content Area */}
-        <main className="flex-1 overflow-y-auto bg-light">
-          {children}
-        </main>
+          <main className="flex-1 overflow-y-auto bg-light pb-16 lg:pb-0">
+            {children}
+          </main>
+
+          {/* Bottom Navigation - Mobile Only */}
+          <BottomNav />
       </div>
     </div>
   );

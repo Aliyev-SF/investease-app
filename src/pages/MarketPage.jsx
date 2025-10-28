@@ -1,25 +1,42 @@
-// src/pages/MarketPage.jsx (UPDATED - Uses market_data and holdings tables)
+// src/pages/MarketPage.jsx - STEP 1: URL Routing Setup
+// Tab structure: /market?tab=market|portfolio|watchlist&view=stocks|etfs|holdings|history
+
 import { useState, useEffect } from 'react';
-import Button from '../components/Button';
+import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import TradeModal from '../components/TradeModal';
 import { useToast } from '../components/ToastContainer';
 import { trackPageView } from '../utils/analytics';
 import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
+import { refreshMarketPrices } from '../services/alphaVantageService';
+
+// Components
 import StockIcon from '../components/brand/icons/StockIcon';
 import ETFIcon from '../components/brand/icons/ETFIcon';
-import { refreshMarketPrices } from '../services/alphaVantageService';
 import StockTable from '../components/StockTable';
 import StockCardsMobile from '../components/StockCardsMobile';
+import TradeModal from '../components/TradeModal';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
-  const [activeTab, setActiveTab] = useState('stocks');
-  const [marketData, setMarketData] = useState({}); // NEW: From market_data table
-  const [holdings, setHoldings] = useState([]); // NEW: From holdings table
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { showToast } = useToast();
+  
+  // Read URL params
+  const mainTab = searchParams.get('tab') || 'market';
+  const subTab = searchParams.get('view') || (mainTab === 'market' ? 'stocks' : 'holdings');
+  
+  // State
+  const [marketData, setMarketData] = useState({});
+  const [holdings, setHoldings] = useState([]);
   const [portfolio, setPortfolio] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeMode, setTradeMode] = useState('buy');
-  const { showToast } = useToast();
+
+  // Helper: Update URL params
+  const updateTab = (tab, view = null) => {
+    const params = { tab };
+    if (view) params.view = view;
+    setSearchParams(params);
+  };
 
   useEffect(() => {
     if (userData?.id) {
@@ -27,17 +44,14 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     }
   }, [userData]);
 
-  // NEW: Load market data from database
   useEffect(() => {
     loadMarketData();
   }, []);
 
-  // Refresh market data every 30 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       loadMarketData();
     }, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -49,7 +63,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
 
-  // NEW: Load market data from database
   const loadMarketData = async () => {
     try {
       const { data, error } = await supabase
@@ -60,7 +73,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
 
       if (error) throw error;
 
-      // Convert to object keyed by symbol
       const dataObj = {};
       data.forEach(stock => {
         dataObj[stock.symbol] = {
@@ -84,7 +96,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
 
   const loadPortfolio = async () => {
     if (!userData) return;
-
     try {
       const { data, error } = await supabase
         .from('portfolios')
@@ -99,10 +110,8 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     }
   };
 
-  // NEW: Load holdings from holdings table
   const loadHoldings = async () => {
     if (!userData) return;
-
     try {
       const { data, error } = await supabase
         .from('holdings')
@@ -131,33 +140,58 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     return holding ? parseFloat(holding.shares) : 0;
   };
 
+  // Calculate portfolio summary values
+  const cash = portfolio?.cash || 10000;
+  
+  const holdingsValue = holdings.reduce((sum, holding) => {
+    const stock = marketData[holding.symbol];
+    if (!stock) return sum;
+    return sum + (parseFloat(holding.shares) * stock.price);
+  }, 0);
+
+  const totalValue = cash + holdingsValue;
+
+  // Calculate today's change across all holdings
+  const todayChange = holdings.reduce((sum, holding) => {
+    const stock = marketData[holding.symbol];
+    if (!stock) return sum;
+    return sum + (parseFloat(holding.shares) * stock.change);
+  }, 0);
+
+  const todayChangePercent = holdingsValue > 0 
+    ? (todayChange / holdingsValue) * 100 
+    : 0;
+
+  const formatCurrency = (value) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  };
+
   const handleExecuteTrade = async (symbol, shares, price, type) => {
     try {
       const totalCost = shares * price;
       const holding = holdings.find(h => h.symbol === symbol);
 
       if (type === 'buy') {
-        // Check sufficient funds
         if (portfolio.cash < totalCost) {
           showToast('Insufficient funds', 'error');
           return;
         }
 
         if (holding) {
-          // Update existing holding
           const newShares = parseFloat(holding.shares) + shares;
           const newAvgPrice = 
             (parseFloat(holding.shares) * parseFloat(holding.average_price) + totalCost) / newShares;
 
           await supabase
             .from('holdings')
-            .update({
-              shares: newShares,
-              average_price: newAvgPrice
-            })
+            .update({ shares: newShares, average_price: newAvgPrice })
             .eq('id', holding.id);
         } else {
-          // Create new holding
           await supabase
             .from('holdings')
             .insert({
@@ -168,13 +202,11 @@ function MarketPage({ userData, onConfidenceUpdate }) {
             });
         }
 
-        // Update cash
         await supabase
           .from('portfolios')
           .update({ cash: portfolio.cash - totalCost })
           .eq('user_id', userData.id);
 
-        // Record transaction
         await supabase
           .from('transactions')
           .insert({
@@ -189,7 +221,6 @@ function MarketPage({ userData, onConfidenceUpdate }) {
 
         showToast(`Bought ${shares} shares of ${symbol}!`, 'success');
       } else {
-        // Sell logic
         if (!holding || parseFloat(holding.shares) < shares) {
           showToast('Insufficient shares', 'error');
           return;
@@ -200,26 +231,22 @@ function MarketPage({ userData, onConfidenceUpdate }) {
         const remainingShares = parseFloat(holding.shares) - shares;
 
         if (remainingShares > 0) {
-          // Update holding
           await supabase
             .from('holdings')
             .update({ shares: remainingShares })
             .eq('id', holding.id);
         } else {
-          // Delete holding
           await supabase
             .from('holdings')
             .delete()
             .eq('id', holding.id);
         }
 
-        // Update cash
         await supabase
           .from('portfolios')
           .update({ cash: portfolio.cash + totalCost })
           .eq('user_id', userData.id);
 
-        // Record transaction
         await supabase
           .from('transactions')
           .insert({
@@ -239,13 +266,11 @@ function MarketPage({ userData, onConfidenceUpdate }) {
         showToast(`Sold ${shares} shares of ${symbol}. ${profitText}`, 'success');
       }
 
-      // Recalculate confidence score
       const newScore = await recalculateConfidenceAfterTrade(userData.id);
       if (newScore && onConfidenceUpdate) {
         onConfidenceUpdate(newScore);
       }
 
-      // Reload data
       loadPortfolio();
       loadHoldings();
       setSelectedStock(null);
@@ -255,116 +280,204 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     }
   };
 
-  // Filter assets based on active tab
+  // Filter assets for Market tab
   const displayedAssets = Object.entries(marketData).filter(([, asset]) => 
-    activeTab === 'stocks' ? asset.type === 'stock' : asset.type === 'etf'
+    subTab === 'stocks' ? asset.type === 'stock' : asset.type === 'etf'
   );
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      {/* Page Header */}
-<div className="mb-6">
-  <div className="flex justify-between items-center">
-    <div>
-      <h2 className="text-3xl font-bold text-dark mb-2">Stock Market</h2>
-      <p className="text-gray">Browse and trade stocks and ETFs</p>
-    </div>
-<div className="flex gap-2">
-
-  
-  {/* ADMIN: Price Update Button */}
-  {userData?.email === 'test10@test.co' && (
-        <button
-          onClick={async () => {
-            const allSymbols = [
-              // Stocks
-              'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 
-              'NVDA', 'META', 'NFLX', 'DIS', 'COST',
-              // ETFs
-              'SPY', 'QQQ', 'VOO', 'VTI', 'AGG'
-            ];
-            
-            const confirmUpdate = window.confirm(
-              `Update all 15 stock/ETF prices?\n\n` +
-              `⏱️ Takes ~3 minutes\n` +
-              `📊 Uses 15 of your 25 daily API calls\n` +
-              `💰 You have ${25 - 15} calls remaining after this\n\n` +
-              `Continue?`
-            );
-            
-            if (!confirmUpdate) return;
-            
-            showToast('Updating prices... This takes ~3 minutes', 'info');
-            const result = await refreshMarketPrices(allSymbols);
-            
-            if (result.success) {
-              showToast(
-                `✅ Updated ${result.updated.length}/15 stocks in ${Math.round(result.duration/60)}min ${result.duration%60}s`, 
-                'success'
-              );
-              loadMarketData();
-            } else {
-              showToast('Update failed. Check console for details.', 'error');
-            }
-          }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg"
-        >
-          🔄 Refresh Market Prices
-        </button>
-  )}
-</div>
-  </div>
-</div>
-
-      {/* Tabs for Stocks/ETFs */}
-      <div className="bg-white rounded-3xl shadow-lg mb-6 overflow-hidden">
-        <div className="flex border-b-2 border-light">
-          <button
-            onClick={() => setActiveTab('stocks')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
-              activeTab === 'stocks'
-                ? 'text-primary border-b-4 border-primary bg-primary bg-opacity-5'
-                : 'text-gray hover:text-primary hover:bg-light'
-            }`}
-          >
-            <StockIcon size={20} className={activeTab === 'stocks' ? 'text-primary' : 'text-gray'} />
-            <span>Stocks</span>
-          </button>
-          
-
-          <button
-            onClick={() => setActiveTab('etfs')}
-            className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
-              activeTab === 'etfs'
-                ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-600 bg-opacity-5'
-                : 'text-gray hover:text-purple-600 hover:bg-light'
-            }`}
-          >
-            <ETFIcon size={20} className={activeTab === 'etfs' ? 'text-purple-600' : 'text-gray'} />
-            <span>ETFs</span>
-          </button>
+      {/* Portfolio Summary Header - Responsive */}
+      <div className="grid grid-cols-3 gap-3 md:gap-6 mb-6">
+        <div>
+          <div className="text-xs md:text-sm text-gray mb-1">Total Assets</div>
+          <div className="text-base md:text-3xl font-bold text-dark">{formatCurrency(totalValue)}</div>
         </div>
-
-        {/* Desktop: Table View (hidden on mobile) */}
-        <div className="hidden lg:block p-6">
-          <StockTable 
-            stocks={displayedAssets}
-            getUserShares={getUserShares}
-            onBuyClick={handleBuyClick}
-            onSellClick={handleSellClick}
-            activeTab={activeTab}  // ← ADD THIS
-          />
+        
+        <div>
+          <div className="text-xs md:text-sm text-gray mb-1">Today's Change</div>
+          <div className={`text-base md:text-3xl font-bold ${todayChange >= 0 ? 'text-success' : 'text-danger'}`}>
+            {todayChange >= 0 ? '+' : ''}{formatCurrency(Math.abs(todayChange))}
+            <span className="text-xs md:text-xl ml-1 md:ml-2">({todayChange >= 0 ? '+' : ''}{todayChangePercent.toFixed(2)}%)</span>
+          </div>
         </div>
-        {/* Mobile: Compact Cards (hidden on desktop) */}
-        <div className="block lg:hidden p-6">
-          <StockCardsMobile 
-            stocks={displayedAssets}
-            getUserShares={getUserShares}
-            onBuyClick={handleBuyClick}
-            onSellClick={handleSellClick}
-          />
+        
+        <div>
+          <div className="text-xs md:text-sm text-gray mb-1">Available Cash</div>
+          <div className="text-base md:text-3xl font-bold text-primary">{formatCurrency(cash)}</div>
         </div>
       </div>
+
+      {/* LEVEL 1 TABS - Main Navigation (Subtle Pills) */}
+      <div className="flex gap-1 mb-4 bg-gray-50 p-1 rounded-2xl">
+        <button
+          onClick={() => updateTab('market', 'stocks')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 md:px-4 rounded-xl font-semibold transition-all text-sm md:text-base ${
+            mainTab === 'market'
+              ? 'bg-white shadow-sm text-dark'
+              : 'text-gray-500 hover:text-dark'
+          }`}
+        >
+          <span>Market</span>
+        </button>
+
+        <button
+          onClick={() => updateTab('portfolio', 'holdings')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 md:px-4 rounded-xl font-semibold transition-all text-sm md:text-base ${
+            mainTab === 'portfolio'
+              ? 'bg-white shadow-sm text-dark'
+              : 'text-gray-500 hover:text-dark'
+          }`}
+        >
+          <span>My Portfolio</span>
+        </button>
+
+        <button
+          disabled
+          className="flex-1 flex items-center justify-center gap-2 py-3 px-2 md:px-4 rounded-xl text-gray-400 cursor-not-allowed opacity-50 text-sm md:text-base"
+        >
+          <span>Watchlist</span>
+          <span className="text-xs hidden md:inline">Soon</span>
+        </button>
+      </div>
+
+      {/* LEVEL 2 TABS - Context Specific (Bold Tabs in Card) */}
+      <div className="bg-white rounded-3xl shadow-lg mb-6 overflow-hidden">
+        {mainTab === 'market' && (
+          <div className="flex border-b-2 border-light">
+            <button
+              onClick={() => updateTab('market', 'stocks')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
+                subTab === 'stocks'
+                  ? 'text-primary border-b-4 border-primary bg-primary bg-opacity-5'
+                  : 'text-gray hover:text-primary hover:bg-light'
+              }`}
+            >
+              <StockIcon size={20} className={subTab === 'stocks' ? 'text-primary' : 'text-gray'} />
+              <span>Stocks</span>
+            </button>
+
+            <button
+              onClick={() => updateTab('market', 'etfs')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
+                subTab === 'etfs'
+                  ? 'text-purple-600 border-b-4 border-purple-600 bg-purple-600 bg-opacity-5'
+                  : 'text-gray hover:text-purple-600 hover:bg-light'
+              }`}
+            >
+              <ETFIcon size={20} className={subTab === 'etfs' ? 'text-purple-600' : 'text-gray'} />
+              <span>ETFs</span>
+            </button>
+          </div>
+        )}
+
+        {mainTab === 'portfolio' && (
+          <div className="flex border-b-2 border-light">
+            <button
+              onClick={() => updateTab('portfolio', 'holdings')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
+                subTab === 'holdings'
+                  ? 'text-primary border-b-4 border-primary bg-primary bg-opacity-5'
+                  : 'text-gray hover:text-primary hover:bg-light'
+              }`}
+            >
+              <span>Holdings</span>
+            </button>
+
+            <button
+              onClick={() => updateTab('portfolio', 'history')}
+              className={`flex-1 flex items-center justify-center gap-2 py-4 px-6 font-semibold transition-all ${
+                subTab === 'history'
+                  ? 'text-primary border-b-4 border-primary bg-primary bg-opacity-5'
+                  : 'text-gray hover:text-primary hover:bg-light'
+              }`}
+            >
+              <span>Transactions</span>
+            </button>
+          </div>
+        )}
+
+        {/* CONTENT AREA */}
+        <div className="p-6">
+          {/* Market Tab Content */}
+          {mainTab === 'market' && (
+            <>
+              {/* Desktop: Table */}
+              <div className="hidden lg:block">
+                <StockTable 
+                  stocks={displayedAssets}
+                  getUserShares={getUserShares}
+                  onBuyClick={handleBuyClick}
+                  onSellClick={handleSellClick}
+                  activeTab={subTab}
+                />
+              </div>
+
+              {/* Mobile: Cards */}
+              <div className="block lg:hidden">
+                <StockCardsMobile 
+                  stocks={displayedAssets}
+                  getUserShares={getUserShares}
+                  onBuyClick={handleBuyClick}
+                  onSellClick={handleSellClick}
+                />
+              </div>
+            </>
+          )}
+
+          {/* Portfolio Tab Content */}
+          {mainTab === 'portfolio' && (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🚧</div>
+              <div className="text-xl font-bold text-dark mb-2">
+                {subTab === 'holdings' ? 'Holdings View' : 'Transaction History'}
+              </div>
+              <div className="text-gray">Content coming in Step 2!</div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Admin Button */}
+      {userData?.email === 'test10@test.com' && (
+        <div className="mb-6">
+          <button
+            onClick={async () => {
+              const allSymbols = [
+                'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 
+                'NVDA', 'META', 'NFLX', 'DIS', 'COST',
+                'SPY', 'QQQ', 'VOO', 'VTI', 'AGG'
+              ];
+              
+              const confirmUpdate = window.confirm(
+                `Update all 15 stock/ETF prices?\n\n` +
+                `⏱️ Takes ~3 minutes\n` +
+                `📊 Uses 15 of your 25 daily API calls\n` +
+                `💰 You have ${25 - 15} calls remaining after this\n\n` +
+                `Continue?`
+              );
+              
+              if (!confirmUpdate) return;
+              
+              showToast('Updating prices... This takes ~3 minutes', 'info');
+              const result = await refreshMarketPrices(allSymbols);
+              
+              if (result.success) {
+                showToast(
+                  `✅ Updated ${result.updated.length}/15 stocks in ${Math.round(result.duration/60)}min ${result.duration%60}s`, 
+                  'success'
+                );
+                loadMarketData();
+              } else {
+                showToast('Update failed. Check console for details.', 'error');
+              }
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-all shadow-lg"
+          >
+            🔄 Refresh Market Prices
+          </button>
+        </div>
+      )}
 
       {/* Trade Modal */}
       {selectedStock && marketData[selectedStock] && portfolio && (

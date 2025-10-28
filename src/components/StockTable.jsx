@@ -202,37 +202,25 @@ function StockTable({ stocks, getUserShares, onBuyClick, onSellClick, activeTab 
               )}
 
               {/* Actions Column */}
-              <div className="flex gap-2 justify-center">
-                {hasShares ? (
-                  <>
-                    <Button 
-                      variant="primary" 
-                      size="sm"
-                      onClick={() => onBuyClick(symbol)}
-                      className="min-w-[90px]"
-                    >
-                      Buy More
-                    </Button>
-                    <Button 
-                      variant="danger" 
-                      size="sm"
-                      onClick={() => onSellClick(symbol)}
-                      className="min-w-[90px]"
-                    >
-                      Sell
-                    </Button>
-                  </>
-                ) : (
-                  <Button 
+                <div className="flex gap-2 justify-center">
+                <Button 
                     variant="primary" 
                     size="sm"
                     onClick={() => onBuyClick(symbol)}
                     className="min-w-[90px]"
-                  >
+                >
                     Buy
-                  </Button>
-                )}
-              </div>
+                </Button>
+                <Button 
+                    variant="danger" 
+                    size="sm"
+                    onClick={() => onSellClick(symbol)}
+                    disabled={!hasShares}
+                    className="min-w-[90px]"
+                >
+                    Sell
+                </Button>
+                </div>
             </div>
           </div>
         );
