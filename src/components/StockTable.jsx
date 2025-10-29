@@ -1,10 +1,12 @@
 // src/components/StockTable.jsx
 // Desktop table view for Market Page - shadow card design, modern and clean
+// ✨ UPDATED: Added WatchlistButton in first column
 
 import React, { useState } from 'react';
 import Button from './Button';
 import StockIcon from './brand/icons/StockIcon';
 import ETFIcon from './brand/icons/ETFIcon';
+import WatchlistButton from './WatchlistButton';
 
 /**
  * StockTable Component - Desktop Table View with Shadow Cards
@@ -17,8 +19,18 @@ import ETFIcon from './brand/icons/ETFIcon';
  * @param {Function} onBuyClick - Handler for buy button
  * @param {Function} onSellClick - Handler for sell button
  * @param {string} activeTab - Current active tab ('stocks' or 'etfs')
+ * @param {Function} isInWatchlist - Function to check if symbol is in watchlist
+ * @param {Function} onToggleWatchlist - Function to add/remove from watchlist
  */
-function StockTable({ stocks, getUserShares, onBuyClick, onSellClick, activeTab }) {
+function StockTable({ 
+  stocks, 
+  getUserShares, 
+  onBuyClick, 
+  onSellClick, 
+  activeTab,
+  isInWatchlist,
+  onToggleWatchlist
+}) {
   const [sortBy, setSortBy] = useState('symbol'); // symbol, price, change, owned, pe
   const [sortDirection, setSortDirection] = useState('asc'); // asc, desc
 
@@ -79,9 +91,14 @@ function StockTable({ stocks, getUserShares, onBuyClick, onSellClick, activeTab 
       <div className="bg-light rounded-2xl shadow-sm px-6 py-4">
         <div className="grid gap-4 items-center" style={{ 
           gridTemplateColumns: activeTab === 'etfs' 
-            ? '2fr 1fr 1fr 1.5fr' 
-            : '2fr 1fr 1fr 0.8fr 1.5fr' 
+            ? '48px 2fr 1fr 1fr 1.5fr'  // Added 48px for heart column
+            : '48px 2fr 1fr 1fr 0.8fr 1.5fr'  // Added 48px for heart column
         }}>
+          {/* Heart Column Header */}
+          <div className="text-center text-sm font-semibold text-gray">
+            {/* Empty column for heart button */}
+          </div>
+          
           <div 
             className="text-left text-sm font-semibold text-gray cursor-pointer hover:text-primary transition-colors"
             onClick={() => handleSort('symbol')}
@@ -129,9 +146,19 @@ function StockTable({ stocks, getUserShares, onBuyClick, onSellClick, activeTab 
           >
             <div className="grid gap-4 items-center" style={{ 
               gridTemplateColumns: activeTab === 'etfs' 
-                ? '2fr 1fr 1fr 1.5fr' 
-                : '2fr 1fr 1fr 0.8fr 1.5fr' 
+                ? '48px 2fr 1fr 1fr 1.5fr'  // Added 48px for heart column
+                : '48px 2fr 1fr 1fr 0.8fr 1.5fr'  // Added 48px for heart column
             }}>
+              {/* Watchlist Heart Button Column */}
+              <div className="flex justify-center">
+                <WatchlistButton
+                  symbol={symbol}
+                  isInWatchlist={isInWatchlist(symbol)}
+                  onToggle={onToggleWatchlist}
+                  size={20}
+                />
+              </div>
+
               {/* Stock Column: Icon + Symbol + Name + Ownership Badge */}
               <div className="flex items-center gap-3">
                 <div className="flex-shrink-0">
@@ -185,42 +212,33 @@ function StockTable({ stocks, getUserShares, onBuyClick, onSellClick, activeTab 
               {activeTab !== 'etfs' && (
                 <div className="text-center">
                   {stock.peRatio ? (
-                    <div className="relative group inline-block">
-                      <div className="font-semibold text-dark cursor-help">
-                        {stock.peRatio}
-                      </div>
-                      {/* Tooltip */}
-                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-dark text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                        Price-to-Earnings ratio
-                        <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-dark"></div>
-                      </div>
-                    </div>
+                    <span className="font-semibold text-dark">{stock.peRatio}</span>
                   ) : (
                     <span className="text-gray text-sm">—</span>
                   )}
                 </div>
               )}
 
-              {/* Actions Column */}
-                <div className="flex gap-2 justify-center">
+              {/* Actions Column: Buy/Sell Buttons */}
+              <div className="flex gap-2 justify-center">
                 <Button 
-                    variant="primary" 
-                    size="sm"
-                    onClick={() => onBuyClick(symbol)}
-                    className="min-w-[90px]"
+                  variant="primary" 
+                  size="sm"
+                  onClick={() => onBuyClick(symbol)}
+                  className="min-w-[90px]"
                 >
-                    Buy
+                  Buy
                 </Button>
                 <Button 
-                    variant="danger" 
-                    size="sm"
-                    onClick={() => onSellClick(symbol)}
-                    disabled={!hasShares}
-                    className="min-w-[90px]"
+                  variant="danger" 
+                  size="sm"
+                  onClick={() => onSellClick(symbol)}
+                  disabled={!hasShares}
+                  className="min-w-[90px]"
                 >
-                    Sell
+                  Sell
                 </Button>
-                </div>
+              </div>
             </div>
           </div>
         );

@@ -4,7 +4,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase } from '../utils/supabase';
-import { useToast } from '../components/ToastContainer';
 import { trackPageView } from '../utils/analytics';
 import { recalculateConfidenceAfterTrade } from '../utils/confidenceCalculator';
 import { refreshMarketPrices } from '../services/alphaVantageService';
@@ -15,7 +14,12 @@ import ETFIcon from '../components/brand/icons/ETFIcon';
 import StockTable from '../components/StockTable';
 import StockCardsMobile from '../components/StockCardsMobile';
 import HoldingsView from '../components/HoldingsView';
-import TransactionsView from '../components/TransactionsView'; 
+import TransactionsView from '../components/TransactionsView';
+import WatchlistButton from '../components/WatchlistButton';
+import WatchlistView from '../components/WatchlistView';
+
+// Hooks
+import { useToast } from '../components/ToastContainer';
 import TradeModal from '../components/TradeModal';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
@@ -33,6 +37,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeMode, setTradeMode] = useState('buy');
   const [transactions, setTransactions] = useState([]);
+  const [watchlist, setWatchlist] = useState([])
 
   // Helper: Update URL params
   const updateTab = (tab, view = null) => {
@@ -63,6 +68,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
       loadPortfolio();
       loadHoldings();
       loadTransactions();
+      loadWatchlist();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
@@ -142,6 +148,79 @@ function MarketPage({ userData, onConfidenceUpdate }) {
   } catch (error) {
     console.error('Error loading transactions:', error);
   }
+};
+const loadWatchlist = async () => {
+  if (!userData) return;
+  try {
+    const { data, error } = await supabase
+      .from('watchlist')
+      .select('symbol')
+      .eq('user_id', userData.id)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    
+    // Store as array of symbols: ['AAPL', 'TSLA', 'NVDA']
+    const symbols = data ? data.map(item => item.symbol) : [];
+    setWatchlist(symbols);
+    
+    console.log('✅ Loaded watchlist:', symbols);
+  } catch (error) {
+    console.error('Error loading watchlist:', error);
+  }
+};
+const toggleWatchlist = async (symbol) => {
+  if (!userData) {
+    showToast('Please log in to use watchlist', 'error');
+    return;
+  }
+
+  const isCurrentlyInWatchlist = watchlist.includes(symbol);
+
+  try {
+    if (isCurrentlyInWatchlist) {
+      // Remove from watchlist
+      const { error } = await supabase
+        .from('watchlist')
+        .delete()
+        .eq('user_id', userData.id)
+        .eq('symbol', symbol);
+
+      if (error) throw error;
+
+      // Update local state (optimistic update)
+      setWatchlist(watchlist.filter(s => s !== symbol));
+      showToast(`Removed ${symbol} from watchlist`, 'success');
+      
+      console.log(`❌ Removed ${symbol} from watchlist`);
+    } else {
+      // Add to watchlist
+      const { error } = await supabase
+        .from('watchlist')
+        .insert({
+          user_id: userData.id,
+          symbol: symbol
+        });
+
+      if (error) throw error;
+
+      // Update local state (optimistic update)
+      setWatchlist([...watchlist, symbol]);
+      showToast(`Added ${symbol} to watchlist`, 'success');
+      
+      console.log(`✅ Added ${symbol} to watchlist`);
+    }
+  } catch (error) {
+    console.error('Error toggling watchlist:', error);
+    showToast('Failed to update watchlist', 'error');
+    
+    // Reload to sync state if error occurs
+    loadWatchlist();
+  }
+};
+
+const isInWatchlist = (symbol) => {
+  return watchlist.includes(symbol);
 };
 
   const handleBuyClick = (symbol) => {
@@ -352,11 +431,14 @@ function MarketPage({ userData, onConfidenceUpdate }) {
         </button>
 
         <button
-          disabled
-          className="flex-1 flex items-center justify-center gap-2 py-3 px-2 md:px-4 rounded-xl text-gray-400 cursor-not-allowed opacity-50 text-sm md:text-base"
+          onClick={() => updateTab('watchlist', 'watchlist')}
+          className={`flex-1 flex items-center justify-center gap-2 py-3 px-2 md:px-4 rounded-xl font-semibold transition-all text-sm md:text-base ${
+            mainTab === 'watchlist'
+              ? 'bg-white shadow-sm text-dark'
+              : 'text-gray-500 hover:text-dark'
+          }`}
         >
           <span>Watchlist</span>
-          <span className="text-xs hidden md:inline">Soon</span>
         </button>
       </div>
 
@@ -429,6 +511,8 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   onBuyClick={handleBuyClick}
                   onSellClick={handleSellClick}
                   activeTab={subTab}
+                  isInWatchlist={isInWatchlist}
+                  onToggleWatchlist={toggleWatchlist}
                 />
               </div>
 
@@ -439,6 +523,8 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   getUserShares={getUserShares}
                   onBuyClick={handleBuyClick}
                   onSellClick={handleSellClick}
+                  isInWatchlist={isInWatchlist}
+                  onToggleWatchlist={toggleWatchlist}
                 />
               </div>
             </>
@@ -464,8 +550,21 @@ function MarketPage({ userData, onConfidenceUpdate }) {
                   marketData={marketData}
                 />
               )}
+
             </>
           )}
+          
+              {/*Watchlist Tab Content */}
+              {mainTab === 'watchlist' && (
+                <WatchlistView
+                  watchlist={watchlist}
+                  marketData={marketData}
+                  onBuyClick={handleBuyClick}
+                  onSellClick={handleSellClick}
+                  getUserShares={getUserShares}
+                  onToggleWatchlist={toggleWatchlist}
+                />
+              )}
         </div>
       </div>
 
