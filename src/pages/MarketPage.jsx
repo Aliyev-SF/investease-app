@@ -14,6 +14,8 @@ import StockIcon from '../components/brand/icons/StockIcon';
 import ETFIcon from '../components/brand/icons/ETFIcon';
 import StockTable from '../components/StockTable';
 import StockCardsMobile from '../components/StockCardsMobile';
+import HoldingsView from '../components/HoldingsView';
+import TransactionsView from '../components/TransactionsView'; 
 import TradeModal from '../components/TradeModal';
 
 function MarketPage({ userData, onConfidenceUpdate }) {
@@ -30,6 +32,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
   const [portfolio, setPortfolio] = useState(null);
   const [selectedStock, setSelectedStock] = useState(null);
   const [tradeMode, setTradeMode] = useState('buy');
+  const [transactions, setTransactions] = useState([]);
 
   // Helper: Update URL params
   const updateTab = (tab, view = null) => {
@@ -59,6 +62,7 @@ function MarketPage({ userData, onConfidenceUpdate }) {
     if (userData) {
       loadPortfolio();
       loadHoldings();
+      loadTransactions();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userData]);
@@ -124,6 +128,21 @@ function MarketPage({ userData, onConfidenceUpdate }) {
       console.error('Error loading holdings:', error);
     }
   };
+  const loadTransactions = async () => {
+  if (!userData) return;
+  try {
+    const { data, error } = await supabase
+      .from('transactions')
+      .select('*')
+      .eq('user_id', userData.id)
+      .order('timestamp', { ascending: false });
+
+    if (error) throw error;
+    setTransactions(data || []);
+  } catch (error) {
+    console.error('Error loading transactions:', error);
+  }
+};
 
   const handleBuyClick = (symbol) => {
     setSelectedStock(symbol);
@@ -427,13 +446,25 @@ function MarketPage({ userData, onConfidenceUpdate }) {
 
           {/* Portfolio Tab Content */}
           {mainTab === 'portfolio' && (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🚧</div>
-              <div className="text-xl font-bold text-dark mb-2">
-                {subTab === 'holdings' ? 'Holdings View' : 'Transaction History'}
-              </div>
-              <div className="text-gray">Content coming in Step 2!</div>
-            </div>
+            <>
+              {/* Holdings View */}
+              {subTab === 'holdings' && (
+                <HoldingsView
+                  holdings={holdings}
+                  marketData={marketData}
+                  onBuyClick={handleBuyClick}
+                  onSellClick={handleSellClick}
+                />
+              )}
+
+              {/* Transactions View */}
+              {subTab === 'history' && (
+                <TransactionsView
+                  transactions={transactions}
+                  marketData={marketData}
+                />
+              )}
+            </>
           )}
         </div>
       </div>
