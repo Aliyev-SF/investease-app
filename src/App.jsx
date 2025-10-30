@@ -15,6 +15,7 @@ import HistoryPage from './pages/HistoryPage';
 import ProgressPage from './pages/ProgressPage';
 import LearnPage from './pages/LearnPage';
 import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
+import StockDetailPage from './pages/StockDetailPage';
 
 function App() {
   const [currentView, setCurrentView] = useState('loading');
@@ -174,18 +175,26 @@ function App() {
                 />
               } 
             />
-            <Route 
-              path="/market" 
+            <Route
+              path="/market"
               element={
-                <MarketPage 
+                <MarketPage
                   userData={userData}
                   onConfidenceUpdate={handleConfidenceUpdate}
                 />
-              } 
+              }
             />
-            <Route 
-              path="/history" 
-              element={<HistoryPage userData={userData} />} 
+            <Route
+              path="/stock/:symbol"
+              element={
+                <StockDetailPage
+                  userData={userData}
+                />
+              }
+            />
+            <Route
+              path="/history"
+              element={<HistoryPage userData={userData} />}
             />
             <Route 
               path="/progress" 

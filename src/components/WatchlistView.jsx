@@ -3,7 +3,7 @@
 // Reuses Market tab design pattern (shadow cards)
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from './Button';
 import StockIcon from './brand/icons/StockIcon';
 import ETFIcon from './brand/icons/ETFIcon';
@@ -23,6 +23,7 @@ import WatchlistButton from './WatchlistButton';
  * @param {Function} onToggleWatchlist - Handler for removing from watchlist
  */
 function WatchlistViewDesktop({ watchlist, marketData, onBuyClick, onSellClick, getUserShares, onToggleWatchlist }) {
+  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('symbol'); // symbol, price, change
   const [sortDirection, setSortDirection] = useState('asc'); // asc, desc
 
@@ -162,9 +163,12 @@ function WatchlistViewDesktop({ watchlist, marketData, onBuyClick, onSellClick, 
                     <StockIcon size={24} className="text-primary" />
                   )}
                 </div>
-                <div className="min-w-0">
+                <div
+                  className="min-w-0 cursor-pointer"
+                  onClick={() => navigate(`/stock/${stock.symbol}`)}
+                >
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-dark">{stock.symbol}</span>
+                    <span className="font-bold text-dark hover:text-primary transition-colors">{stock.symbol}</span>
                     {/* Ownership Badge */}
                     {hasShares && (
                       <div className="relative group inline-block">
@@ -179,7 +183,7 @@ function WatchlistViewDesktop({ watchlist, marketData, onBuyClick, onSellClick, 
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray truncate max-w-[180px]" title={stock.name}>
+                  <div className="text-xs text-gray truncate max-w-[180px] hover:text-primary transition-colors" title={stock.name}>
                     {stock.name}
                   </div>
                 </div>
@@ -243,6 +247,8 @@ function WatchlistViewDesktop({ watchlist, marketData, onBuyClick, onSellClick, 
  * WatchlistView Component - Mobile Card View
  */
 function WatchlistViewMobile({ watchlist, marketData, onBuyClick, onSellClick, getUserShares, onToggleWatchlist }) {
+  const navigate = useNavigate();
+
   // Get stock data for watchlist symbols
   const watchlistStocks = watchlist
     .map(symbol => {
@@ -296,16 +302,19 @@ function WatchlistViewMobile({ watchlist, marketData, onBuyClick, onSellClick, g
               </div>
 
               {/* Symbol + Name + Ownership Badge */}
-              <div className="flex-1 min-w-0">
+              <div
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => navigate(`/stock/${stock.symbol}`)}
+              >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-lg text-dark">{stock.symbol}</span>
+                  <span className="font-bold text-lg text-dark hover:text-primary transition-colors">{stock.symbol}</span>
                   {hasShares && (
                     <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary bg-opacity-10 text-primary">
                       {userShares}
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-gray truncate">{stock.name}</div>
+                <div className="text-sm text-gray truncate hover:text-primary transition-colors">{stock.name}</div>
               </div>
 
               {/* Watchlist Heart Button - Always filled */}

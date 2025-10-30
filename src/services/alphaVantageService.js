@@ -87,12 +87,69 @@ export const fetchStockQuote = async (symbol) => {
 };
 
 /**
+ * Fetch company overview with fundamentals
+ * Includes: 52-week high/low, company description, sector, industry, market cap, PE ratio, dividend
+ * @param {string} symbol - Stock symbol (e.g., 'AAPL', 'TSLA')
+ * @returns {Promise<Object>} Company overview data
+ */
+export const fetchCompanyOverview = async (symbol) => {
+  try {
+    const url = `${BASE_URL}?function=OVERVIEW&symbol=${symbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+
+    console.log(`🏢 Fetching company overview for ${symbol}...`);
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data['Error Message']) {
+      throw new Error(`Alpha Vantage Error: ${data['Error Message']}`);
+    }
+
+    if (data['Note']) {
+      throw new Error('Rate limit reached. Please wait a minute and try again.');
+    }
+
+    if (!data.Symbol) {
+      throw new Error(`No overview data returned for symbol: ${symbol}`);
+    }
+
+    // Extract relevant fields
+    const overview = {
+      symbol: data.Symbol,
+      name: data.Name,
+      description: data.Description,
+      sector: data.Sector,
+      industry: data.Industry,
+      marketCap: parseInt(data.MarketCapitalization) || null,
+      peRatio: parseFloat(data.PERatio) || null,
+      dividendYield: parseFloat(data.DividendYield) ? parseFloat(data.DividendYield) * 100 : null, // Convert to percentage
+      week52High: parseFloat(data['52WeekHigh']) || null,
+      week52Low: parseFloat(data['52WeekLow']) || null,
+      type: data.AssetType === 'ETF' ? 'etf' : 'stock'
+    };
+
+    console.log(`✅ Successfully fetched overview for ${symbol}`);
+
+    return overview;
+
+  } catch (error) {
+    console.error(`❌ Error fetching overview for ${symbol}:`, error.message);
+    throw error;
+  }
+};
+
+/**
  * Test function - fetch Apple stock as a test
  * Call this to verify your API key works!
  */
 export const testConnection = async () => {
   console.log('🧪 Testing Alpha Vantage connection...');
-  
+
   try {
     const appleData = await fetchStockQuote('AAPL');
     console.log('🎉 Connection successful!');
@@ -274,29 +331,110 @@ export const saveToHistory = async (quotes) => {
 };
 
 /**
+ * Update company overview data in database
+ *
+ * @param {Object} overview - Company overview data from fetchCompanyOverview
+ * @returns {Promise<Object>} Result of update operation
+ */
+export const updateCompanyOverview = async (overview) => {
+  const { supabase } = await import('../utils/supabase.js');
+
+  try {
+    const { error } = await supabase
+      .from('market_data')
+      .update({
+        company_description: overview.description,
+        sector: overview.sector,
+        industry: overview.industry,
+        market_cap: overview.marketCap,
+        pe_ratio: overview.peRatio,
+        dividend_yield: overview.dividendYield,
+        week_52_high: overview.week52High,
+        week_52_low: overview.week52Low,
+        type: overview.type,
+        last_updated: new Date().toISOString()
+      })
+      .eq('symbol', overview.symbol);
+
+    if (error) throw error;
+
+    console.log(`✅ Updated overview for ${overview.symbol}`);
+    return { success: true, symbol: overview.symbol };
+
+  } catch (error) {
+    console.error(`❌ Failed to update overview for ${overview.symbol}:`, error.message);
+    return { success: false, symbol: overview.symbol, error: error.message };
+  }
+};
+
+/**
+ * Fetch and update company overview data for multiple stocks
+ *
+ * @param {Array<string>} symbols - Array of stock symbols
+ * @returns {Promise<Object>} Summary of the operation
+ */
+export const refreshCompanyOverviews = async (symbols) => {
+  console.log(`🏢 Fetching company overviews for ${symbols.length} stocks...`);
+  console.log(`⏱️ This will take ~${Math.ceil(symbols.length * 12 / 60)} minutes (rate limiting)`);
+
+  const updated = [];
+  const errors = [];
+
+  for (let i = 0; i < symbols.length; i++) {
+    const symbol = symbols[i];
+
+    try {
+      console.log(`[${i + 1}/${symbols.length}] Fetching overview for ${symbol}...`);
+      const overview = await fetchCompanyOverview(symbol);
+      const result = await updateCompanyOverview(overview);
+
+      if (result.success) {
+        updated.push(symbol);
+      } else {
+        errors.push({ symbol, error: result.error });
+      }
+
+      // Rate limiting
+      if (i < symbols.length - 1) {
+        console.log('⏳ Waiting 12 seconds (rate limit)...');
+        await delay(12000);
+      }
+
+    } catch (error) {
+      console.error(`❌ Failed to process ${symbol}:`, error.message);
+      errors.push({ symbol, error: error.message });
+    }
+  }
+
+  console.log(`✅ Successfully updated: ${updated.length}/${symbols.length} overviews`);
+
+  return { updated, errors };
+};
+
+/**
  * Full update: Fetch prices from Alpha Vantage and update database
  * This is the main function you'll use to refresh prices
- * 
+ *
  * @param {Array<string>} symbols - Array of stock symbols to update
  * @returns {Promise<Object>} Summary of the update operation
  */
 export const refreshMarketPrices = async (symbols) => {
   console.log('🔄 Starting market price refresh...');
-  
+
   const startTime = Date.now();
-  
+
   // Step 1: Fetch from Alpha Vantage
   const { results: quotes, errors: fetchErrors } = await fetchMultipleStocks(symbols);
-  
+
   // Step 2: Update database
 const { updated, errors: updateErrors } = await updateMarketData(quotes);
 
 // Step 3: Save to history
 const { saved, errors: historyErrors } = await saveToHistory(quotes);
-  
+
   const endTime = Date.now();
   const duration = ((endTime - startTime) / 1000).toFixed(0);
-  
+
  console.log('🎉 Market price refresh complete!');
 console.log(`⏱️ Total time: ${duration} seconds`);
 console.log(`✅ Successfully updated: ${updated.length} stocks`);

@@ -3,7 +3,7 @@
 // Reuses Market tab design (shadow cards) but shows owned positions with gain/loss
 
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Button from './Button';
 import StockIcon from './brand/icons/StockIcon';
 import ETFIcon from './brand/icons/ETFIcon';
@@ -20,6 +20,7 @@ import ETFIcon from './brand/icons/ETFIcon';
  * @param {Function} onSellClick - Handler for Sell button
  */
 function HoldingsViewDesktop({ holdings, marketData, onBuyClick, onSellClick }) {
+  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('value'); // symbol, shares, value, gain
   const [sortDirection, setSortDirection] = useState('desc'); // asc, desc
 
@@ -167,9 +168,12 @@ function HoldingsViewDesktop({ holdings, marketData, onBuyClick, onSellClick }) 
                     <StockIcon size={24} className="text-primary" />
                   )}
                 </div>
-                <div className="min-w-0">
-                  <div className="font-bold text-dark">{holding.symbol}</div>
-                  <div className="text-xs text-gray truncate max-w-[180px]" title={holding.name}>
+                <div
+                  className="min-w-0 cursor-pointer"
+                  onClick={() => navigate(`/stock/${holding.symbol}`)}
+                >
+                  <div className="font-bold text-dark hover:text-primary transition-colors">{holding.symbol}</div>
+                  <div className="text-xs text-gray truncate max-w-[180px] hover:text-primary transition-colors" title={holding.name}>
                     {holding.name}
                   </div>
                 </div>
@@ -236,6 +240,8 @@ function HoldingsViewDesktop({ holdings, marketData, onBuyClick, onSellClick }) 
  * Compact card layout for mobile devices
  */
 function HoldingsViewMobile({ holdings, marketData, onBuyClick, onSellClick }) {
+  const navigate = useNavigate();
+
   // Calculate enriched holdings
   const enrichedHoldings = holdings.map(holding => {
     const stock = marketData[holding.symbol];
@@ -308,12 +314,15 @@ function HoldingsViewMobile({ holdings, marketData, onBuyClick, onSellClick }) {
               </div>
 
               {/* Symbol, Name, Shares */}
-              <div className="flex-1 min-w-0">
+              <div
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => navigate(`/stock/${holding.symbol}`)}
+              >
                 <div className="flex items-center gap-2">
-                  <span className="font-bold text-lg text-dark">{holding.symbol}</span>
+                  <span className="font-bold text-lg text-dark hover:text-primary transition-colors">{holding.symbol}</span>
                   <span className="text-sm text-gray">• {holding.shares} shares</span>
                 </div>
-                <div className="text-sm text-gray truncate">{holding.name}</div>
+                <div className="text-sm text-gray truncate hover:text-primary transition-colors">{holding.name}</div>
               </div>
 
               {/* Current Price */}

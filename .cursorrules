@@ -1,0 +1,96 @@
+# InvestEase - Cursor Rules
+
+## Communication
+- Be extremely concise, sacrifice grammar for brevity
+- No emojis/praise - just structured, organized responses
+- User will ask clarifying questions if needed
+
+## Code Comments
+- Always comment file purpose at top
+- Comment important/complex sections within files
+- Goal: anyone reading later understands step-by-step
+- See existing codebase for examples
+
+## Mission
+- Build confidence for investment newcomers (ages 24-35)
+- Primary persona: Sarah (28, marketing coordinator)
+- Reduce intimidation, not just solve financial barriers
+- Every feature should ask: "Does this help Sarah feel confident?"
+
+## Stack
+- React 19 with React Router v7
+- Supabase (auth + PostgreSQL + RLS)
+- Tailwind CSS
+- Recharts for visualizations
+- Alpha Vantage API (rate limited: 5 calls/min, 25/day)
+
+## Code Patterns
+- Functional components with hooks (no class components)
+- Props passed explicitly (userData as prop, not context)
+- Comments: file purpose + important code sections
+- Try/catch for all async operations
+- Loading states for all async UI
+
+## Educational Approach
+- Virtual money only ($10,000 starting balance)
+- Explain financial terms in plain language
+- Use tooltips for jargon
+- Show concrete dollar examples
+- Emphasize "practice" and "learning" language
+- Social proof ("X investors own this")
+
+## UX Rules
+- Reduce intimidation first, features second
+- Progressive disclosure (show complexity gradually)
+- Clear feedback (user always knows what's happening)
+- Error prevention over error handling
+- Beginner-friendly defaults
+
+## Supabase Patterns
+- RLS policies required for all user tables
+- Use auth.uid() in RLS policies
+- Foreign keys CASCADE on delete
+- JSONB for flexible data structures
+- Never modify market_data directly (admin only)
+
+## Database Key Tables
+- profiles: user data + confidence_score
+- portfolios: cash + total_value
+- holdings: shares + average_price per symbol
+- transactions: buy/sell records with profit_loss
+- market_data: stock/ETF prices + info
+- watchlist: user's tracked symbols
+- Views: popular_stocks, platform_stats (aggregated data)
+
+## Confidence Scoring System
+- Range: 0-10, starts at 3.2 from assessment
+- Increases with: trades, diversification, lessons, profitable trades, days active
+- Stored in profiles.confidence_score
+- Track history in confidence_history table
+
+## File Structure
+- src/pages/ - Route components
+- src/components/ - Reusable UI components
+- src/services/ - API integration (market data, portfolio)
+- src/utils/ - Helpers (analytics, confidence calculator, suggestions)
+- All Stock Detail components in src/components/ (not subfolder)
+
+## Security
+- Never store sensitive data in localStorage
+- Supabase for all persistent data
+- Environment variables for API keys
+- RLS policies enforce user isolation
+
+## Trading System
+- Virtual money only
+- Holdings track average_price for cost basis
+- Transactions record profit_loss on sells
+- Portfolio updates cash + total_value
+- Optimistic UI updates for better UX
+
+## Testing Reminders
+- Test locally before deploy
+- Check browser console (F12) for errors
+- Verify data in Supabase Dashboard
+- Test mobile responsiveness
+- Try with fresh user account

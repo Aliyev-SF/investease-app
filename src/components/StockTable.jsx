@@ -3,6 +3,7 @@
 // ✨ UPDATED: Added WatchlistButton in first column
 
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from './Button';
 import StockIcon from './brand/icons/StockIcon';
 import ETFIcon from './brand/icons/ETFIcon';
@@ -22,15 +23,16 @@ import WatchlistButton from './WatchlistButton';
  * @param {Function} isInWatchlist - Function to check if symbol is in watchlist
  * @param {Function} onToggleWatchlist - Function to add/remove from watchlist
  */
-function StockTable({ 
-  stocks, 
-  getUserShares, 
-  onBuyClick, 
-  onSellClick, 
+function StockTable({
+  stocks,
+  getUserShares,
+  onBuyClick,
+  onSellClick,
   activeTab,
   isInWatchlist,
   onToggleWatchlist
 }) {
+  const navigate = useNavigate();
   const [sortBy, setSortBy] = useState('symbol'); // symbol, price, change, owned, pe
   const [sortDirection, setSortDirection] = useState('asc'); // asc, desc
 
@@ -168,9 +170,12 @@ function StockTable({
                     <StockIcon size={24} className="text-primary" />
                   )}
                 </div>
-                <div className="min-w-0">
+                <div
+                  className="min-w-0 cursor-pointer"
+                  onClick={() => navigate(`/stock/${symbol}`)}
+                >
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-dark">{symbol}</span>
+                    <span className="font-bold text-dark hover:text-primary transition-colors">{symbol}</span>
                     {/* Ownership Badge */}
                     {hasShares && (
                       <div className="relative group inline-block">
@@ -185,7 +190,7 @@ function StockTable({
                       </div>
                     )}
                   </div>
-                  <div className="text-xs text-gray truncate max-w-[180px]" title={stock.name}>
+                  <div className="text-xs text-gray truncate max-w-[180px] hover:text-primary transition-colors" title={stock.name}>
                     {stock.name}
                   </div>
                 </div>

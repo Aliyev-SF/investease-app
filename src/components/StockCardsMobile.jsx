@@ -3,6 +3,7 @@
 // ✨ UPDATED: Added WatchlistButton in top right corner
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import Button from './Button';
 import StockIcon from './brand/icons/StockIcon';
 import ETFIcon from './brand/icons/ETFIcon';
@@ -21,14 +22,16 @@ import WatchlistButton from './WatchlistButton';
  * @param {Function} isInWatchlist - Function to check if symbol is in watchlist
  * @param {Function} onToggleWatchlist - Function to add/remove from watchlist
  */
-function StockCardsMobile({ 
-  stocks, 
-  getUserShares, 
-  onBuyClick, 
+function StockCardsMobile({
+  stocks,
+  getUserShares,
+  onBuyClick,
   onSellClick,
   isInWatchlist,
   onToggleWatchlist
 }) {
+  const navigate = useNavigate();
+
   return (
     <div className="space-y-3">
       {stocks.map(([symbol, stock]) => {
@@ -55,16 +58,19 @@ function StockCardsMobile({
               </div>
 
               {/* Symbol + Name + Ownership Badge */}
-              <div className="flex-1 min-w-0">
+              <div
+                className="flex-1 min-w-0 cursor-pointer"
+                onClick={() => navigate(`/stock/${symbol}`)}
+              >
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-lg text-dark">{symbol}</span>
+                  <span className="font-bold text-lg text-dark hover:text-primary transition-colors">{symbol}</span>
                   {hasShares && (
                     <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-primary bg-opacity-10 text-primary">
                       {userShares}
                     </span>
                   )}
                 </div>
-                <div className="text-sm text-gray truncate">{stock.name}</div>
+                <div className="text-sm text-gray truncate hover:text-primary transition-colors">{stock.name}</div>
               </div>
 
               {/* Watchlist Heart Button - Top Right */}
