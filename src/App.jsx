@@ -9,9 +9,7 @@ import LoginPage from './pages/LoginPage';
 import AssessmentPage from './pages/AssessmentPage';
 import Layout from './components/Layout';
 import DashboardPage from './pages/DashboardPage';
-import PortfolioPage from './pages/PortfolioPage';
 import MarketPage from './pages/MarketPage';
-import HistoryPage from './pages/HistoryPage';
 import ProgressPage from './pages/ProgressPage';
 import LearnPage from './pages/LearnPage';
 import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
@@ -167,14 +165,6 @@ function App() {
                 />
               } 
             />
-            <Route 
-              path="/portfolio" 
-              element={
-                <PortfolioPage 
-                  userData={userData} 
-                />
-              } 
-            />
             <Route
               path="/market"
               element={
@@ -191,10 +181,6 @@ function App() {
                   userData={userData}
                 />
               }
-            />
-            <Route
-              path="/history"
-              element={<HistoryPage userData={userData} />}
             />
             <Route 
               path="/progress" 
