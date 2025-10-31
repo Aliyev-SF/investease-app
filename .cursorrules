@@ -48,7 +48,7 @@
 
 ## Supabase Patterns
 - RLS policies required for all user tables
-- Use auth.uid() in RLS policies
+- Use (select auth.uid()) in RLS policies for performance
 - Foreign keys CASCADE on delete
 - JSONB for flexible data structures
 - Never modify market_data directly (admin only)

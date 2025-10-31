@@ -125,20 +125,22 @@ Route: `/stock/:symbol`
 All user tables use Row Level Security:
 ```sql
 -- Standard pattern for user-scoped tables
+-- IMPORTANT: Use (select auth.uid()) subquery for performance
 CREATE POLICY "Users can view own data"
 ON table_name FOR SELECT
 TO authenticated
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can insert own data"
 ON table_name FOR INSERT
 TO authenticated
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK ((select auth.uid()) = user_id);
 
 CREATE POLICY "Users can update own data"
 ON table_name FOR UPDATE
 TO authenticated
-USING (auth.uid() = user_id);
+USING ((select auth.uid()) = user_id)
+WITH CHECK ((select auth.uid()) = user_id);
 ```
 
 market_data and views: SELECT policy for all authenticated users
