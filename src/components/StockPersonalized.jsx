@@ -144,7 +144,7 @@ const StockPersonalized = ({ stock, userHoldings, portfolio, loading }) => {
               <strong>⚠️ Not enough cash</strong>
             </p>
             <p className="text-xs text-yellow-700 mt-1">
-              You need {formatCurrency(stock.current_price)} to buy 1 share. 
+              You need {formatCurrency(stock.current_price)} to invest in 1 share.
               You currently have {formatCurrency(portfolio.cash)} available.
             </p>
           </div>
@@ -165,7 +165,7 @@ const StockPersonalized = ({ stock, userHoldings, portfolio, loading }) => {
             return (
               <div key={shares} className="mb-2 last:mb-0">
                 <p className="text-xs text-purple-800">
-                  If you buy <strong>{shares} shares</strong>, this stock would be{' '}
+                  If you invest in <strong>{shares} shares</strong>, this stock would be{' '}
                   <strong>{percentOfPortfolio.toFixed(1)}%</strong> of your portfolio
                 </p>
               </div>

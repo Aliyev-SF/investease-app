@@ -69,10 +69,10 @@ function TransactionsViewDesktop({ transactions, marketData }) {
       <div className="text-center py-16">
         <div className="text-6xl mb-4">📜</div>
         <div className="text-xl font-bold text-dark mb-2">No transactions yet</div>
-        <div className="text-gray mb-6">Make your first trade to see it here</div>
+        <div className="text-gray mb-6">Make your first investment to see it here</div>
         <Link to="/market?tab=market&view=stocks">
           <Button variant="primary" size="lg">
-            Start Trading
+            Start Investing
           </Button>
         </Link>
       </div>
@@ -92,9 +92,9 @@ function TransactionsViewDesktop({ transactions, marketData }) {
           </div>
         </div>
 
-        {/* Profitable Trades */}
+        {/* Profitable Investments */}
         <div className="bg-white rounded-2xl p-6 shadow-md">
-          <div className="text-sm text-gray mb-1">Profitable Trades</div>
+          <div className="text-sm text-gray mb-1">Profitable Investments</div>
           <div className="text-3xl font-bold text-primary">{profitableTrades}</div>
           <div className="text-xs text-gray mt-1">
             {profitablePercent}% win rate
@@ -255,10 +255,10 @@ function TransactionsViewMobile({ transactions, marketData }) {
       <div className="text-center py-12">
         <div className="text-6xl mb-4">📜</div>
         <div className="text-xl font-bold text-dark mb-2">No transactions yet</div>
-        <div className="text-gray mb-6">Make your first trade</div>
+        <div className="text-gray mb-6">Make your first investment</div>
         <Link to="/market?tab=market&view=stocks">
           <Button variant="primary" size="lg">
-            Start Trading
+            Start Investing
           </Button>
         </Link>
       </div>
@@ -271,7 +271,7 @@ function TransactionsViewMobile({ transactions, marketData }) {
       <div className="grid grid-cols-2 gap-3 mb-6">
         {/* Total Trades */}
         <div className="bg-white rounded-2xl p-4 shadow-md">
-          <div className="text-xs text-gray mb-1">Trades</div>
+          <div className="text-xs text-gray mb-1">Investments</div>
           <div className="text-2xl font-bold text-dark">{totalTrades}</div>
         </div>
 

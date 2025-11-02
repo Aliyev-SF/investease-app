@@ -209,16 +209,16 @@ function HoldingsViewDesktop({ holdings, marketData, onBuyClick, onSellClick }) 
 
               {/* Actions Column */}
               <div className="flex gap-2 justify-center">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   size="sm"
                   onClick={() => onBuyClick(holding.symbol)}
                   className="min-w-[90px]"
                 >
-                  Buy
+                  Invest
                 </Button>
-                <Button 
-                  variant="danger" 
+                <Button
+                  variant="danger"
                   size="sm"
                   onClick={() => onSellClick(holding.symbol)}
                   className="min-w-[90px]"
@@ -357,18 +357,18 @@ function HoldingsViewMobile({ holdings, marketData, onBuyClick, onSellClick }) {
 
             {/* Actions */}
             <div className="flex gap-2 mt-3">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
                 onClick={() => onBuyClick(holding.symbol)}
               >
-                Buy
+                Invest
               </Button>
-              <Button 
-                variant="danger" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="danger"
+                size="sm"
+                fullWidth
                 onClick={() => onSellClick(holding.symbol)}
               >
                 Sell

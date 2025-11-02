@@ -30,7 +30,7 @@ function TradeModal({
     
     if (isBuyMode) {
       if (numValue > maxBuyShares) {
-        setError(`You can only buy ${maxBuyShares} shares with available cash`);
+        setError(`You can only invest in ${maxBuyShares} shares with available cash`);
         setShares(maxBuyShares);
       } else if (numValue < 1) {
         setShares(1);
@@ -256,7 +256,7 @@ function TradeModal({
                 : 'bg-danger text-white hover:bg-red-600'
             } disabled:opacity-50 disabled:cursor-not-allowed`}
           >
-            {isBuyMode ? 'Buy Now' : 'Sell Now'}
+            {isBuyMode ? 'Invest Now' : 'Sell'}
           </button>
         </div>
       </div>

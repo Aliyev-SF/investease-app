@@ -317,7 +317,7 @@ const isInWatchlist = (symbol) => {
             timestamp: new Date().toISOString()
           });
 
-        showToast(`Bought ${shares} shares of ${symbol}!`, 'success');
+        showToast(`Invested in ${shares} shares of ${symbol}!`, 'success');
       } else {
         if (!holding || parseFloat(holding.shares) < shares) {
           showToast('Insufficient shares', 'error');
@@ -373,8 +373,8 @@ const isInWatchlist = (symbol) => {
       loadHoldings();
       setSelectedStock(null);
     } catch (error) {
-      console.error('Error executing trade:', error);
-      showToast('Trade failed. Please try again.', 'error');
+      console.error('Error executing investment:', error);
+      showToast('Investment failed. Please try again.', 'error');
     }
   };
 

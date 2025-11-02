@@ -24,14 +24,14 @@ const StockActions = ({
   return (
     <div className="bg-white rounded-2xl shadow-md p-4 mb-6 lg:sticky lg:top-4 z-10 fixed bottom-16 left-4 right-4 lg:relative lg:left-auto lg:right-auto lg:bottom-auto">
       <div className="flex gap-3">
-        {/* Buy Button */}
+        {/* Invest Button */}
         <Button
           variant="primary"
           size="sm"
           onClick={onBuyClick}
           className="flex-1"
         >
-          Buy
+          Invest
         </Button>
 
         {/* Sell Button */}

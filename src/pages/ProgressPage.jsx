@@ -17,11 +17,11 @@ function ProgressPage({ userData, confidenceScore }) {
 
   // Available achievement types
   const achievementDefinitions = {
-    first_trade: { name: 'First Trade', icon: '🎯', description: 'Made your first trade' },
+    first_trade: { name: 'First Investment', icon: '🎯', description: 'Made your first investment' },
     diversifier: { name: 'Diversifier', icon: '📊', description: 'Own 3+ different stocks' },
     week_streak: { name: 'Week Warrior', icon: '🔥', description: 'Active for 7 days' },
-    profitable_trader: { name: 'Profitable Trader', icon: '💰', description: 'Made a profitable sale' },
-    big_win: { name: 'Big Win', icon: '🚀', description: 'Made $100+ profit on a trade' },
+    profitable_trader: { name: 'Profitable Investor', icon: '💰', description: 'Made a profitable sale' },
+    big_win: { name: 'Big Win', icon: '🚀', description: 'Made $100+ profit on an investment' },
     portfolio_milestone: { name: 'Portfolio Builder', icon: '💼', description: 'Portfolio value over $12,000' }
   };
 

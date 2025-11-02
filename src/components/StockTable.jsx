@@ -224,18 +224,18 @@ function StockTable({
                 </div>
               )}
 
-              {/* Actions Column: Buy/Sell Buttons */}
+              {/* Actions Column: Invest/Sell Buttons */}
               <div className="flex gap-2 justify-center">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   size="sm"
                   onClick={() => onBuyClick(symbol)}
                   className="min-w-[90px]"
                 >
-                  Buy
+                  Invest
                 </Button>
-                <Button 
-                  variant="danger" 
+                <Button
+                  variant="danger"
                   size="sm"
                   onClick={() => onSellClick(symbol)}
                   disabled={!hasShares}

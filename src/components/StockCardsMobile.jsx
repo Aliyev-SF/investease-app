@@ -113,18 +113,18 @@ function StockCardsMobile({
 
             {/* Action Buttons - Always show both */}
             <div className="flex gap-2 mt-3">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
                 onClick={() => onBuyClick(symbol)}
               >
-                Buy
+                Invest
               </Button>
-              <Button 
-                variant="danger" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="danger"
+                size="sm"
+                fullWidth
                 onClick={() => onSellClick(symbol)}
                 disabled={!hasShares}
               >

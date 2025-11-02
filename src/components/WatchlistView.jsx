@@ -215,18 +215,18 @@ function WatchlistViewDesktop({ watchlist, marketData, onBuyClick, onSellClick, 
                 )}
               </div>
 
-              {/* Actions Column: Buy/Sell Buttons */}
+              {/* Actions Column: Invest/Sell Buttons */}
               <div className="flex gap-2 justify-center">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   size="sm"
                   onClick={() => onBuyClick(stock.symbol)}
                   className="min-w-[90px]"
                 >
-                  Buy
+                  Invest
                 </Button>
-                <Button 
-                  variant="danger" 
+                <Button
+                  variant="danger"
                   size="sm"
                   onClick={() => onSellClick(stock.symbol)}
                   disabled={!hasShares}
@@ -350,20 +350,20 @@ function WatchlistViewMobile({ watchlist, marketData, onBuyClick, onSellClick, g
               </div>
             </div>
 
-            {/* Action Buttons - Buy and Sell */}
+            {/* Action Buttons - Invest and Sell */}
             <div className="flex gap-2 mt-3">
-              <Button 
-                variant="primary" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="primary"
+                size="sm"
+                fullWidth
                 onClick={() => onBuyClick(stock.symbol)}
               >
-                Buy
+                Invest
               </Button>
-              <Button 
-                variant="danger" 
-                size="sm" 
-                fullWidth 
+              <Button
+                variant="danger"
+                size="sm"
+                fullWidth
                 onClick={() => onSellClick(stock.symbol)}
                 disabled={!hasShares}
               >

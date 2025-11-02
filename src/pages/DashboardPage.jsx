@@ -144,7 +144,7 @@ function DashboardPage({ userData, confidenceScore }) {
       return {
         icon: '🎯',
         title: 'Ready to Start?',
-        message: 'Make your first trade to begin your investing journey! Remember, this is practice mode - a safe place to learn.',
+        message: 'Make your first investment to begin your investing journey! Remember, this is practice mode - a safe place to learn.',
         color: 'from-primary to-purple-600'
       };
     }
@@ -153,7 +153,7 @@ function DashboardPage({ userData, confidenceScore }) {
       return {
         icon: '🎉',
         title: 'Great Start!',
-        message: 'You made your first trade! Keep practicing and exploring different stocks.',
+        message: 'You made your first investment! Keep practicing and exploring different stocks.',
         color: 'from-success to-green-600'
       };
     }
@@ -170,7 +170,7 @@ function DashboardPage({ userData, confidenceScore }) {
     return {
       icon: '💪',
       title: 'Keep Going!',
-      message: 'You\'re building confidence with every trade. Keep exploring and learning!',
+      message: 'You\'re building confidence with every investment. Keep exploring and learning!',
       color: 'from-primary to-purple-600'
     };
   };
@@ -346,8 +346,8 @@ function DashboardPage({ userData, confidenceScore }) {
           ) : (
             <div className="text-center py-8">
               <div className="text-5xl mb-4">📊</div>
-              <div className="text-gray">No transactions yet</div>
-              <div className="text-sm text-gray mt-2">Visit the Market page to make your first trade!</div>
+              <div className="text-gray">No investments yet</div>
+              <div className="text-sm text-gray mt-2">Visit the Market page to start investing!</div>
             </div>
           )}
         </div>
@@ -372,7 +372,7 @@ function DashboardPage({ userData, confidenceScore }) {
             <div className="text-center py-8">
               <div className="text-5xl mb-4">🏆</div>
               <div className="text-gray">No achievements yet</div>
-              <div className="text-sm text-gray mt-2">Keep trading to unlock badges!</div>
+              <div className="text-sm text-gray mt-2">Keep investing to unlock badges!</div>
             </div>
           )}
         </div>
