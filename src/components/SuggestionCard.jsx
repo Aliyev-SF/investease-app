@@ -1,6 +1,6 @@
 // src/components/SuggestionCard.jsx
 import { useState } from 'react';
-import Button from './Button';
+import Button from './ui/Button';
 
 function SuggestionCard({ 
   icon = '💡',

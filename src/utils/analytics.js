@@ -1,7 +1,7 @@
 // src/utils/analytics.js
 // Analytics tracking utility
 
-import { supabase } from './supabase';
+import { supabase } from '../services/database/supabase';
 
 // Session management
 let currentSessionId = null;

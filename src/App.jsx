@@ -1,19 +1,19 @@
 // src/App.jsx (Updated with confidence score integration)
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { supabase } from './utils/supabase';
-import { ToastProvider } from './components/ToastContainer';
+import { supabase } from './services/database/supabase';
+import { ToastProvider } from './components/feedback/ToastContainer';
 
 // Page Components
-import LoginPage from './pages/LoginPage';
-import AssessmentPage from './pages/AssessmentPage';
-import Layout from './components/Layout';
-import DashboardPage from './pages/DashboardPage';
-import MarketPage from './pages/MarketPage';
-import ProgressPage from './pages/ProgressPage';
-import LearnPage from './pages/LearnPage';
-import AnalyticsDashboardPage from './pages/AnalyticsDashboardPage';
-import StockDetailPage from './pages/StockDetailPage';
+import LoginPage from './features/onboarding/LoginPage';
+import AssessmentPage from './features/onboarding/AssessmentPage';
+import Layout from './components/layout/Layout';
+import DashboardPage from './features/dashboard/DashboardPage';
+import MarketPage from './features/market/MarketPage';
+import ProgressPage from './features/progress/ProgressPage';
+import LearnPage from './features/learning/LearnPage';
+import AnalyticsDashboardPage from './features/analytics/AnalyticsDashboardPage';
+import StockDetailPage from './features/stock-detail/StockDetailPage';
 
 function App() {
   const [currentView, setCurrentView] = useState('loading');

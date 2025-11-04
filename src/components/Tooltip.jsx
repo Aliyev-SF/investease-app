@@ -1,6 +1,6 @@
 // src/components/Tooltip.jsx
 import { useState } from 'react';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../services/database/supabase';
 
 function Tooltip({ term, content, userData, position = 'top' }) {
   const [isVisible, setIsVisible] = useState(false);

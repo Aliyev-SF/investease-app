@@ -1,7 +1,7 @@
 // src/services/marketDataService.js
 // Service layer for market data operations using market_data table
 
-import { supabase } from '../utils/supabase';
+import { supabase } from './database/supabase';
 
 /**
  * Get all active stocks and ETFs

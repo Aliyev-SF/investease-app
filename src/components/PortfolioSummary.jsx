@@ -5,7 +5,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../utils/supabase';
+import { supabase } from '../services/database/supabase';
 
 function PortfolioSummary({ userData }) {
   const navigate = useNavigate();

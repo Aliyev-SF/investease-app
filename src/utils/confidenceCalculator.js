@@ -1,5 +1,5 @@
 // src/utils/confidenceCalculator.js
-import { supabase } from './supabase';
+import { supabase } from '../services/database/supabase';
 
 /**
  * Confidence Score Calculator
